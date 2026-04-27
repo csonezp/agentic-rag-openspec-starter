@@ -46,6 +46,32 @@ class DeepSeekChatCompletionsModelClient(ModelClient):
 
         return _extract_message_content(payload)
 
+    def create_chat_completion(
+        self,
+        messages: list[dict],
+        tools: Optional[list[dict]] = None,
+    ) -> dict:
+        body = {
+            "model": self._config.deepseek_model,
+            "messages": messages,
+            "stream": False,
+        }
+        if tools:
+            body["tools"] = tools
+
+        request = self._build_raw_request(body)
+
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"DeepSeek API 请求失败：{exc.code} {detail}") from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"DeepSeek API 网络请求失败：{exc.reason}") from exc
+
+        return _extract_message(payload)
+
     def stream(self, prompt: str) -> Iterable[str]:
         request = self._build_request(prompt, stream=True)
 
@@ -81,6 +107,9 @@ class DeepSeekChatCompletionsModelClient(ModelClient):
         if max_tokens:
             body["max_tokens"] = max_tokens
 
+        return self._build_raw_request(body)
+
+    def _build_raw_request(self, body: dict) -> urllib.request.Request:
         return urllib.request.Request(
             f"{self._config.deepseek_base_url}/chat/completions",
             data=json.dumps(body).encode("utf-8"),
@@ -123,3 +152,20 @@ def _extract_message_content(payload: dict) -> str:
         raise RuntimeError(f"DeepSeek API 返回错误：{payload['error']}")
 
     raise RuntimeError("DeepSeek API 响应中没有可读取的 message.content")
+
+
+def extract_tool_calls(payload: dict) -> list[dict]:
+    message = _extract_message(payload)
+    return message.get("tool_calls", [])
+
+
+def _extract_message(payload: dict) -> dict:
+    choices = payload.get("choices", [])
+    if not choices:
+        if payload.get("error"):
+            raise RuntimeError(f"DeepSeek API 返回错误：{payload['error']}")
+        raise RuntimeError("DeepSeek API 响应中没有 choices")
+    message = choices[0].get("message")
+    if not isinstance(message, dict):
+        raise RuntimeError("DeepSeek API 响应中没有可读取的 message")
+    return message
