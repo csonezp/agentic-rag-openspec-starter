@@ -92,7 +92,7 @@ MVP 形态：
 ## Phase 1：LLM 应用基础
 
 - [x] 学习 Responses API 的请求和响应结构。
-- [ ] 实现一个基础聊天调用。
+- [x] 实现一个基础聊天调用。
 - [ ] 添加流式输出。
 - [ ] 为一个小 schema 添加结构化输出。
 - [ ] 添加 function/tool calling，并接入一个本地函数。
@@ -250,3 +250,5 @@ MVP 形态：
 - 启动学习小节 `learn-phase-1-responses-api-structure`，并在独立分支 `codex/learn-phase-1-responses-api-structure` 推进。
 - 固化规则：正式学习或实验必须从 `main` 创建独立学习分支，不直接在 `main` 上提交学习过程变更。
 - 完成 Responses API 请求和响应结构学习笔记，记录官方字段结构、最小请求/响应示例、input items、input token count，以及与 Chat Completions 的心智差异。
+- 启动并完成学习小节 `learn-phase-1-basic-chat-call`，在独立分支 `codex/learn-phase-1-basic-chat-call` 实现基础聊天调用。
+- 基础聊天调用支持命令行 prompt、默认 dry-run、显式 `--real` 真实模式，以及缺少 API Key 时的中文错误提示。
