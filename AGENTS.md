@@ -14,7 +14,7 @@
 ## OpenSpec 工作流
 
 - 本项目使用 `openspec/` 目录沉淀可追溯上下文。
-- 每个新的学习阶段或较大功能，都应创建一个独立 change，例如 `openspec/changes/phase-1-llm-basics/`。
+- 每个新的学习阶段或较大功能，都应创建一个独立 change；Phase 1 的 change 只在用户明确启动 Phase 1 时创建。
 - 每个 change 至少包含：
   - `proposal.md`：为什么做、做什么、不做什么、成功标准。
   - `design.md`：技术方案、边界、风险和取舍。

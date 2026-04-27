@@ -60,7 +60,7 @@ MVP 形态：
 
 - 总学习路线继续由本文档维护。
 - 每个学习阶段或较大功能使用 `openspec/changes/<change-id>/` 管理详细上下文。
-- Phase 1 起，每个 Phase 默认创建独立 change，包含 `proposal.md`、`design.md`、`tasks.md` 和能力规格增量。
+- 从正式启动 Phase 1 开始，每个 Phase 默认创建独立 change，包含 `proposal.md`、`design.md`、`tasks.md` 和能力规格增量。
 - 实现前读取对应 change，推进中更新任务勾选，完成后记录关键决策和验证结果。
 - 如果后续安装了 OpenSpec CLI，再补充执行 `openspec validate` 和 `openspec archive`。
 
@@ -230,6 +230,6 @@ MVP 形态：
 - 添加最小 Python 包、unittest 测试、环境变量模板、dry-run hello agent 脚本和 README 运行手册。
 - 第一个知识源留到下一次继续决策。
 - 根据用户要求，把项目说明文档、进度文档等面向人的文本统一改为中文，并在 `AGENTS.md` 记录为项目级约定。
-- 接入 OpenSpec 目录结构，并为 Phase 1 创建 `phase-1-llm-basics` change，后续每个 Phase 默认通过独立 change 管理。
+- 接入 OpenSpec 目录结构，后续每个 Phase 默认通过独立 change 管理；Phase 1 change 会在正式启动 Phase 1 时再创建。
 - 完成 Phase 0 最后一项：第一个知识源确定为仓库内本地 Markdown 知识库，路径为 `knowledge/`。
 - 新增决策记录 `docs/decisions/0001-first-knowledge-source.md` 和 OpenSpec 知识源规格 `openspec/specs/knowledge-source/spec.md`。

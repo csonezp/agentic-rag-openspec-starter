@@ -43,4 +43,4 @@ Phase 0 故意使用 dry-run 模型客户端，这样项目在没有网络和 AP
 
 共享路线图和进度清单见 [docs/agent-learning-todo.md](docs/agent-learning-todo.md)。
 
-每个新的学习阶段或较大功能，使用 `openspec/changes/` 下的独立 change 管理上下文。例如 Phase 1 对应 [openspec/changes/phase-1-llm-basics](openspec/changes/phase-1-llm-basics)。
+每个新的学习阶段或较大功能，使用 `openspec/changes/` 下的独立 change 管理上下文。当前仍处于 Phase 0，Phase 1 的 change 会在正式启动 Phase 1 时再创建。
