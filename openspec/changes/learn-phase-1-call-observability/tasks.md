@@ -14,7 +14,7 @@
 
 - [x] 3.1 扩展 DeepSeek 客户端，返回或暴露模型名、token 使用量和错误信息。
 - [x] 3.2 为流式输出补充延迟和 token 观测摘要。
-  - 2026-04-27(task1): 为 `complete_with_observation` 和 `stream_with_observation` 补充结构化错误观测，异常时抛出携带 `observation` 的 `DeepSeekCallError`，并在流式 `payload.error` 出现时立即失败。
+  - 2026-04-27(task1): 恢复 `stream()` 的真正流式语义，不再先全量缓冲后输出；统一 `complete_with_observation`、`parse_deepseek_stream_events` 和 `stream_with_observation` 在 200 但非法 JSON、畸形 SSE、`payload.error` 场景下抛出携带 `observation` 的 `DeepSeekCallError`；补充 `error_type` 摘要输出，并通过 `tests.test_deepseek_client`、`tests.test_call_observability` 回归验证。
 - [ ] 3.3 为 tool calling 链路补充最小观测信息。
 - [ ] 3.4 更新 CLI 脚本，输出统一的观测摘要。
 
@@ -22,6 +22,6 @@
 
 - [ ] 4.1 新增学习笔记，记录字段来源、统计口径和限制。
 - [ ] 4.2 运行单元测试和 OpenSpec 严格校验。
-  - 2026-04-27(task1): 已运行 `PYTHONPATH=src:. python3 -m unittest tests.test_deepseek_client -v`，通过；尚未执行 OpenSpec 严格校验。
+  - 2026-04-27(task1): 已运行 `PYTHONPATH=src:. python3 -m unittest tests.test_deepseek_client tests.test_call_observability -v`，通过；尚未执行 OpenSpec 严格校验，因此该项保持未完成。
 - [ ] 4.3 使用真实 DeepSeek 调用验证至少一条非流式链路和一条 tool calling 链路。
 - [ ] 4.4 完成后更新 `tasks.md` 和 `docs/agent-learning-todo.md` 勾选状态。

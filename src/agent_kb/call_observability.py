@@ -33,5 +33,6 @@ def format_observation_lines(observation: CallObservation) -> list[str]:
         f"input_tokens={_render_metric(observation.usage.input_tokens)}",
         f"output_tokens={_render_metric(observation.usage.output_tokens)}",
         f"total_tokens={_render_metric(observation.usage.total_tokens)}",
+        f"error_type={observation.error_type or ''}",
         f"error_message={observation.error_message or ''}",
     ]

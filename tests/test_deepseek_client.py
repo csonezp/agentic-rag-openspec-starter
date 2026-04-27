@@ -300,6 +300,76 @@ class DeepSeekClientTest(unittest.TestCase):
 
         self.assertEqual(chunks, ["你", "好"])
 
+    def test_parse_stream_events_raises_structured_error_for_error_payload(self):
+        lines = [
+            (
+                'data: {"model":"deepseek-stream-model","error":{"message":"boom","type":"server_error"}}\n'
+            ).encode("utf-8"),
+            b"data: [DONE]\n",
+        ]
+
+        with self.assertRaises(DeepSeekCallError) as ctx:
+            list(parse_deepseek_stream_events(lines))
+
+        self.assertEqual(
+            str(ctx.exception),
+            "DeepSeek API 返回错误：{'message': 'boom', 'type': 'server_error'}",
+        )
+        self.assertEqual(ctx.exception.observation.provider, "deepseek")
+        self.assertEqual(ctx.exception.observation.model, "deepseek-stream-model")
+        self.assertEqual(ctx.exception.observation.error_type, "api_error")
+        self.assertEqual(
+            ctx.exception.observation.error_message,
+            "DeepSeek API 返回错误：{'message': 'boom', 'type': 'server_error'}",
+        )
+
+    def test_parse_stream_events_raises_structured_error_for_malformed_sse(self):
+        lines = [
+            b'event: message\n',
+            b'data: {"choices":[{"delta":{"content":"ignored"}}]\n',
+            b"data: [DONE]\n",
+        ]
+
+        with self.assertRaises(DeepSeekCallError) as ctx:
+            list(parse_deepseek_stream_events(lines))
+
+        self.assertIn("DeepSeek SSE 事件格式非法", str(ctx.exception))
+        self.assertEqual(ctx.exception.observation.provider, "deepseek")
+        self.assertEqual(ctx.exception.observation.model, "deepseek-chat")
+        self.assertEqual(ctx.exception.observation.error_type, "invalid_sse")
+
+    def test_stream_yields_chunks_before_full_stream_finishes(self):
+        config = AppConfig.from_env({"DEEPSEEK_API_KEY": "deepseek-key"})
+        state = {"finished": False}
+
+        class StreamingLines:
+            def __iter__(self):
+                yield (
+                    'data: {"choices":[{"delta":{"content":"首块"}}]}\n'
+                ).encode("utf-8")
+                yield (
+                    'data: {"choices":[{"delta":{"content":"尾块"}}]}\n'
+                ).encode("utf-8")
+                state["finished"] = True
+                yield b"data: [DONE]\n"
+
+        class StreamingResponse:
+            def __enter__(self):
+                return StreamingLines()
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+        def fake_urlopen(request, timeout):
+            return StreamingResponse()
+
+        with patch("agent_kb.deepseek_client.urllib.request.urlopen", fake_urlopen):
+            stream = DeepSeekChatCompletionsModelClient(config).stream("流式")
+            first_chunk = next(stream)
+
+        self.assertEqual(first_chunk, "首块")
+        self.assertFalse(state["finished"])
+
     def test_stream_posts_streaming_request(self):
         config = AppConfig.from_env({"DEEPSEEK_API_KEY": "deepseek-key"})
         captured = {}
@@ -443,6 +513,40 @@ class DeepSeekClientTest(unittest.TestCase):
             ctx.exception.observation.error_message,
             "DeepSeek API 返回错误：{'message': 'stream failed', 'type': 'server_error'}",
         )
+
+    def test_complete_with_observation_raises_structured_error_for_invalid_json_body(self):
+        config = AppConfig.from_env({"DEEPSEEK_API_KEY": "deepseek-key"})
+
+        class InvalidJsonResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+            def read(self):
+                return b'{"choices": ['
+
+        def fake_urlopen(request, timeout):
+            return InvalidJsonResponse()
+
+        with patch("agent_kb.deepseek_client.urllib.request.urlopen", fake_urlopen):
+            with patch.object(
+                deepseek_client_module,
+                "time",
+                create=True,
+            ) as fake_time:
+                fake_time.monotonic.side_effect = [50.0, 50.02]
+                with self.assertRaises(DeepSeekCallError) as ctx:
+                    DeepSeekChatCompletionsModelClient(
+                        config
+                    ).complete_with_observation("非法 JSON")
+
+        self.assertIn("DeepSeek API 返回了非法 JSON", str(ctx.exception))
+        self.assertEqual(ctx.exception.observation.provider, "deepseek")
+        self.assertEqual(ctx.exception.observation.model, config.deepseek_model)
+        self.assertEqual(ctx.exception.observation.latency_ms, 20)
+        self.assertEqual(ctx.exception.observation.error_type, "invalid_json")
 
     def test_requires_api_key(self):
         config = AppConfig.from_env({})
