@@ -63,6 +63,36 @@ class DeepSeekClientTest(unittest.TestCase):
         self.assertEqual(captured["body"]["messages"][-1], {"role": "user", "content": "你好"})
         self.assertFalse(captured["body"]["stream"])
 
+    def test_complete_json_sets_response_format_and_max_tokens(self):
+        config = AppConfig.from_env({"DEEPSEEK_API_KEY": "deepseek-key"})
+        captured = {}
+
+        def fake_urlopen(request, timeout):
+            captured["body"] = json.loads(request.data.decode("utf-8"))
+            return FakeResponse(
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": '{"title":"标题","summary":"摘要","next_action":"下一步"}',
+                            }
+                        }
+                    ]
+                }
+            )
+
+        with patch("agent_kb.deepseek_client.urllib.request.urlopen", fake_urlopen):
+            response = DeepSeekChatCompletionsModelClient(config).complete_json(
+                "请输出 json", max_tokens=256
+            )
+
+        self.assertEqual(
+            response, '{"title":"标题","summary":"摘要","next_action":"下一步"}'
+        )
+        self.assertEqual(captured["body"]["response_format"], {"type": "json_object"})
+        self.assertEqual(captured["body"]["max_tokens"], 256)
+        self.assertFalse(captured["body"]["stream"])
+
     def test_parse_stream_events_reads_delta_content_until_done(self):
         lines = [
             'data: {"choices":[{"delta":{"content":"你"}}]}\n'.encode("utf-8"),

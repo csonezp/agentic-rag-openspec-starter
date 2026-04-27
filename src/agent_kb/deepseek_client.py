@@ -1,7 +1,7 @@
 import json
 import urllib.error
 import urllib.request
-from typing import Iterable
+from typing import Iterable, Optional
 
 from agent_kb.config import AppConfig
 from agent_kb.hello_agent import ModelClient
@@ -27,6 +27,25 @@ class DeepSeekChatCompletionsModelClient(ModelClient):
 
         return _extract_message_content(payload)
 
+    def complete_json(self, prompt: str, max_tokens: int = 512) -> str:
+        request = self._build_request(
+            prompt,
+            stream=False,
+            response_format={"type": "json_object"},
+            max_tokens=max_tokens,
+        )
+
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"DeepSeek API 请求失败：{exc.code} {detail}") from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"DeepSeek API 网络请求失败：{exc.reason}") from exc
+
+        return _extract_message_content(payload)
+
     def stream(self, prompt: str) -> Iterable[str]:
         request = self._build_request(prompt, stream=True)
 
@@ -39,22 +58,32 @@ class DeepSeekChatCompletionsModelClient(ModelClient):
         except urllib.error.URLError as exc:
             raise RuntimeError(f"DeepSeek API 网络请求失败：{exc.reason}") from exc
 
-    def _build_request(self, prompt: str, stream: bool) -> urllib.request.Request:
+    def _build_request(
+        self,
+        prompt: str,
+        stream: bool,
+        response_format: Optional[dict] = None,
+        max_tokens: Optional[int] = None,
+    ) -> urllib.request.Request:
+        body = {
+            "model": self._config.deepseek_model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "你是一个帮助学习 Agent 开发的助手。",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "stream": stream,
+        }
+        if response_format:
+            body["response_format"] = response_format
+        if max_tokens:
+            body["max_tokens"] = max_tokens
+
         return urllib.request.Request(
             f"{self._config.deepseek_base_url}/chat/completions",
-            data=json.dumps(
-                {
-                    "model": self._config.deepseek_model,
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": "你是一个帮助学习 Agent 开发的助手。",
-                        },
-                        {"role": "user", "content": prompt},
-                    ],
-                    "stream": stream,
-                }
-            ).encode("utf-8"),
+            data=json.dumps(body).encode("utf-8"),
             headers={
                 "Authorization": f"Bearer {self._config.deepseek_api_key}",
                 "Content-Type": "application/json",
