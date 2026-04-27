@@ -18,7 +18,8 @@
 - [x] 3.3 为 tool calling 链路补充最小观测信息。
   - 2026-04-27(task1): 为 `ToolCallingRunner` 新增 `run_with_observation()`，返回独立的结构化观测结果；最小字段覆盖 `tool_triggered`、`tool_names`、`success`、`error_type` 和 `error_message`，并保持现有 `run()`/CLI 输出契约不变；已通过 `tests.test_tool_calling` 和 `tests.test_call_observability` 回归验证。
   - 2026-04-27(task3-review): 修复进入 `tool_calls` 分支后在 `parse_tool_request` 失败、handler 抛错、第二次 `create_chat_completion` 失败、最终 `content` 为空等路径下观测字段丢失的问题；补充 `parse_tool_request` 对缺失 `id`/`name` 的清晰校验，以及 `run_with_observation()` 失败路径测试；已通过 `tests.test_tool_calling` 和 `tests.test_call_observability` 回归验证。
-- [ ] 3.4 更新 CLI 脚本，输出统一的观测摘要。
+- [x] 3.4 更新 CLI 脚本，输出统一的观测摘要。
+  - 2026-04-27(task4): `scripts/hello_model.py` 在 DeepSeek 真实非流式与流式路径接入 `call_observability.format_observation_lines()`，统一输出 `observation:` 摘要块；`scripts/tool_calling_demo.py` 在真实模式接入 `format_tool_call_observation_lines()` 输出 tool calling 观测摘要，同时保留 dry-run 默认路径与真实模式缺少 API Key 时的现有语义；对应补充 `tests.test_hello_model_script`、`tests.test_tool_calling` 和 `tests.test_call_observability` 回归验证。
 
 ## 4. 文档与验证
 

@@ -3,6 +3,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from typing import Mapping, Optional, Sequence
 
+from agent_kb.call_observability import format_observation_lines
 from agent_kb.config import AppConfig
 from agent_kb.deepseek_client import DeepSeekChatCompletionsModelClient
 from agent_kb.hello_agent import DryRunModelClient, HelloAgent
@@ -10,6 +11,12 @@ from agent_kb.openai_client import ResponsesApiModelClient
 
 
 DEFAULT_PROMPT = "用一句简短的话介绍 Agent 开发学习项目。"
+
+
+def _print_observation_summary(lines: Sequence[str]) -> None:
+    print("observation:")
+    for line in lines:
+        print(line)
 
 
 def parse_args(argv: Sequence[str]) -> Namespace:
@@ -55,8 +62,6 @@ def main(
         model_client = DryRunModelClient()
         mode = "dry-run"
 
-    agent = HelloAgent(model_client=model_client)
-
     print(f"mode={mode}")
     print(f"provider={config.model_provider}")
     print(f"stream={str(args.stream).lower()}")
@@ -64,13 +69,27 @@ def main(
         print(f"model={config.deepseek_model}")
     else:
         print(f"model={config.model}")
+
+    if args.real and config.model_provider == "deepseek":
+        if args.stream:
+            result = model_client.stream_with_observation(args.prompt)
+            for chunk in result.chunks:
+                print(chunk, end="", flush=True)
+            print()
+            _print_observation_summary(format_observation_lines(result.observation))
+        else:
+            result = model_client.complete_with_observation(args.prompt)
+            print(result.text)
+            _print_observation_summary(format_observation_lines(result.observation))
+        return 0
+
+    agent = HelloAgent(model_client=model_client)
     if args.stream:
         for chunk in agent.stream(args.prompt):
             print(chunk, end="", flush=True)
         print()
     else:
-        response = agent.run(args.prompt)
-        print(response)
+        print(agent.run(args.prompt))
     return 0
 
 

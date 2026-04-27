@@ -33,6 +33,10 @@ def _render_metric(value: Optional[int]) -> str:
     return str(value)
 
 
+def _render_bool(value: bool) -> str:
+    return "true" if value else "false"
+
+
 def format_observation_lines(observation: CallObservation) -> list[str]:
     return [
         f"provider={observation.provider}",
@@ -43,6 +47,18 @@ def format_observation_lines(observation: CallObservation) -> list[str]:
         f"total_tokens={_render_metric(observation.usage.total_tokens)}",
         f"error_type={observation.error_type or ''}",
         f"error_message={observation.error_message or ''}",
+    ]
+
+
+def format_tool_call_observation_lines(
+    observation: ToolCallObservation,
+) -> list[str]:
+    return [
+        f"tool_triggered={_render_bool(observation['tool_triggered'])}",
+        f"tool_names={','.join(observation['tool_names'])}",
+        f"success={_render_bool(observation['success'])}",
+        f"error_type={observation['error_type'] or ''}",
+        f"error_message={observation['error_message'] or ''}",
     ]
 
 

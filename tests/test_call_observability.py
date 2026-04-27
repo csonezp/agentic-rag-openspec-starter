@@ -4,6 +4,7 @@ from agent_kb.call_observability import (
     CallObservation,
     UsageMetrics,
     format_observation_lines,
+    format_tool_call_observation_lines,
 )
 
 
@@ -74,6 +75,28 @@ class CallObservabilityTest(unittest.TestCase):
 
         self.assertEqual(lines[-2], "error_type=invalid_json")
         self.assertEqual(lines[-1], "error_message=HTTP 429")
+
+    def test_format_tool_call_observation_lines_renders_summary(self):
+        lines = format_tool_call_observation_lines(
+            {
+                "tool_triggered": True,
+                "tool_names": ["get_phase1_progress"],
+                "success": True,
+                "error_type": None,
+                "error_message": None,
+            }
+        )
+
+        self.assertEqual(
+            lines,
+            [
+                "tool_triggered=true",
+                "tool_names=get_phase1_progress",
+                "success=true",
+                "error_type=",
+                "error_message=",
+            ],
+        )
 
 
 if __name__ == "__main__":

@@ -410,6 +410,53 @@ class ToolCallingDemoScriptTest(unittest.TestCase):
         self.assertEqual(exit_code, 2)
         self.assertIn("DEEPSEEK_API_KEY", stderr.getvalue())
 
+    def test_real_mode_outputs_tool_observation_summary(self):
+        class FakeDeepSeekClient:
+            def __init__(self, config):
+                self.config = config
+
+        class FakeRunner:
+            def __init__(self, client, tools):
+                self.client = client
+                self.tools = tools
+
+            def run(self, prompt):
+                return "Phase 1 进度已查询完成。"
+
+            def run_with_observation(self, prompt):
+                return ToolRunResult(
+                    answer="Phase 1 进度已查询完成。",
+                    observation={
+                        "tool_triggered": True,
+                        "tool_names": ["get_phase1_progress"],
+                        "success": True,
+                        "error_type": None,
+                        "error_message": None,
+                    },
+                )
+
+        stdout = io.StringIO()
+        with unittest.mock.patch(
+            "scripts.tool_calling_demo.DeepSeekChatCompletionsModelClient",
+            FakeDeepSeekClient,
+        ):
+            with unittest.mock.patch(
+                "scripts.tool_calling_demo.ToolCallingRunner",
+                FakeRunner,
+            ):
+                with redirect_stdout(stdout):
+                    exit_code = main(
+                        ["--real", "请查询 Phase 1 进度"],
+                        env={"DEEPSEEK_API_KEY": "deepseek-key"},
+                    )
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Phase 1 进度已查询完成。", stdout.getvalue())
+        self.assertIn("observation:", stdout.getvalue())
+        self.assertIn("tool_triggered=true", stdout.getvalue())
+        self.assertIn("tool_names=get_phase1_progress", stdout.getvalue())
+        self.assertIn("success=true", stdout.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
