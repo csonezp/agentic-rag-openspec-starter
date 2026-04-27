@@ -39,6 +39,14 @@
 - **AND** 系统 MUST 告诉用户新增或修改了哪些文件，以及为什么这样改
 - **AND** 系统 MUST 在用户确认继续后再进入实验、代码修改或任务实施
 
+#### Scenario: 正式进入学习或实验
+
+- **WHEN** 用户确认进入某个学习小节的正式学习或实验
+- **THEN** 系统 MUST 从 `main` 创建独立学习分支
+- **AND** 分支名 MUST 使用 `codex/learn-phase-<n>-<topic>` 形式
+- **AND** MUST NOT 直接在 `main` 上提交学习过程变更
+- **AND** MUST 仅在用户明确要求时合并回 `main`
+
 #### Scenario: 学习小节已经完成
 
 - **WHEN** 用户请求学习某个已经完成的小节

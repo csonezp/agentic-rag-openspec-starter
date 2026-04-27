@@ -68,6 +68,8 @@ MVP 形态：
 
 - 用户通过“学习 Phase X 的某个小节”启动学习单元。
 - 每个学习小节优先创建独立 OpenSpec change，而不是一次性推进整个 Phase。
+- 正式进入学习或实验前，必须从 `main` 创建独立学习分支，分支名使用 `codex/learn-phase-<n>-<topic>` 形式。
+- 不直接在 `main` 上提交学习过程变更；合并回 `main` 需要用户明确要求。
 - 如果小节已完成，则不创建 change、不修改文件，只说明已完成。
 - 如果小节未完成，change id 使用 `learn-phase-<n>-<topic>` 形式。
 - 创建 change 后，先说明本次改了哪些文件、为什么这样改，再等待用户确认是否进入学习和实验。
@@ -89,7 +91,7 @@ MVP 形态：
 
 ## Phase 1：LLM 应用基础
 
-- [ ] 学习 Responses API 的请求和响应结构。
+- [x] 学习 Responses API 的请求和响应结构。
 - [ ] 实现一个基础聊天调用。
 - [ ] 添加流式输出。
 - [ ] 为一个小 schema 添加结构化输出。
@@ -242,3 +244,9 @@ MVP 形态：
 - 接入 OpenSpec 目录结构，后续每个 Phase 默认通过独立 change 管理；Phase 1 change 会在正式启动 Phase 1 时再创建。
 - 完成 Phase 0 最后一项：第一个知识源确定为仓库内本地 Markdown 知识库，路径为 `knowledge/`。
 - 新增决策记录 `docs/decisions/0001-first-knowledge-source.md` 和 OpenSpec 知识源规格 `openspec/specs/knowledge-source/spec.md`。
+
+### 2026-04-27 Phase 1 学习记录
+
+- 启动学习小节 `learn-phase-1-responses-api-structure`，并在独立分支 `codex/learn-phase-1-responses-api-structure` 推进。
+- 固化规则：正式学习或实验必须从 `main` 创建独立学习分支，不直接在 `main` 上提交学习过程变更。
+- 完成 Responses API 请求和响应结构学习笔记，记录官方字段结构、最小请求/响应示例、input items、input token count，以及与 Chat Completions 的心智差异。
