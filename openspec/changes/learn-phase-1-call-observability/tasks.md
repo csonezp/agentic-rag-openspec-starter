@@ -15,7 +15,8 @@
 - [x] 3.1 扩展 DeepSeek 客户端，返回或暴露模型名、token 使用量和错误信息。
 - [x] 3.2 为流式输出补充延迟和 token 观测摘要。
   - 2026-04-27(task1): 恢复 `stream()` 的真正流式语义，不再先全量缓冲后输出；统一 `complete_with_observation`、`parse_deepseek_stream_events` 和 `stream_with_observation` 在 200 但非法 JSON、畸形 SSE、`payload.error` 场景下抛出携带 `observation` 的 `DeepSeekCallError`；补充 `error_type` 摘要输出，并通过 `tests.test_deepseek_client`、`tests.test_call_observability` 回归验证。
-- [ ] 3.3 为 tool calling 链路补充最小观测信息。
+- [x] 3.3 为 tool calling 链路补充最小观测信息。
+  - 2026-04-27(task1): 为 `ToolCallingRunner` 新增 `run_with_observation()`，返回独立的结构化观测结果；最小字段覆盖 `tool_triggered`、`tool_names`、`success`、`error_type` 和 `error_message`，并保持现有 `run()`/CLI 输出契约不变；已通过 `tests.test_tool_calling` 和 `tests.test_call_observability` 回归验证。
 - [ ] 3.4 更新 CLI 脚本，输出统一的观测摘要。
 
 ## 4. 文档与验证

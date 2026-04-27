@@ -2,6 +2,11 @@ import json
 from dataclasses import dataclass
 from typing import Callable, Optional, Protocol
 
+from agent_kb.call_observability import (
+    ToolCallObservation,
+    build_tool_call_observation,
+)
+
 
 class ToolCallingClient(Protocol):
     def create_chat_completion(
@@ -23,6 +28,12 @@ class ToolRequest:
 class ToolDefinition:
     schema: dict
     handler: Callable[[], str]
+
+
+@dataclass(frozen=True)
+class ToolRunResult:
+    answer: str
+    observation: ToolCallObservation
 
 
 def get_phase1_progress() -> str:
@@ -114,6 +125,24 @@ class ToolCallingRunner:
         }
 
     def run(self, prompt: str) -> str:
+        return self._run_once(prompt).answer
+
+    def run_with_observation(self, prompt: str) -> ToolRunResult:
+        try:
+            return self._run_once(prompt)
+        except Exception as exc:
+            return ToolRunResult(
+                answer="",
+                observation=build_tool_call_observation(
+                    tool_triggered=getattr(exc, "tool_triggered", False),
+                    tool_names=getattr(exc, "tool_names", []),
+                    success=False,
+                    error_type=type(exc).__name__,
+                    error_message=str(exc),
+                ),
+            )
+
+    def _run_once(self, prompt: str) -> ToolRunResult:
         messages = [{"role": "user", "content": prompt}]
         tool_schemas = [tool.schema for tool in self._tools.values()]
 
@@ -122,19 +151,41 @@ class ToolCallingRunner:
             tools=tool_schemas,
         )
         tool_calls = assistant_message.get("tool_calls", [])
+        tool_names = [
+            tool_call.get("function", {}).get("name", "")
+            for tool_call in tool_calls
+            if tool_call.get("function", {}).get("name")
+        ]
+
         if not tool_calls:
             content = assistant_message.get("content")
             if content:
-                return content
-            raise RuntimeError("模型没有返回 tool_calls 或 content")
+                return ToolRunResult(
+                    answer=content,
+                    observation=build_tool_call_observation(
+                        tool_triggered=False,
+                        tool_names=[],
+                        success=True,
+                    ),
+                )
+            error = RuntimeError("模型没有返回 tool_calls 或 content")
+            setattr(error, "tool_triggered", False)
+            setattr(error, "tool_names", [])
+            raise error
 
         messages.append(assistant_message)
         for tool_call in tool_calls:
             request = parse_tool_request(tool_call)
             if request.name not in self._tools:
-                raise ValueError(f"未注册工具：{request.name}")
+                error = ValueError(f"未注册工具：{request.name}")
+                setattr(error, "tool_triggered", True)
+                setattr(error, "tool_names", tool_names)
+                raise error
             if request.arguments:
-                raise ValueError(f"工具 {request.name} 不接受参数")
+                error = ValueError(f"工具 {request.name} 不接受参数")
+                setattr(error, "tool_triggered", True)
+                setattr(error, "tool_names", tool_names)
+                raise error
 
             result = self._tools[request.name].handler()
             messages.append(
@@ -148,5 +199,15 @@ class ToolCallingRunner:
         final_message = self._client.create_chat_completion(messages)
         content = final_message.get("content")
         if not content:
-            raise RuntimeError("模型最终回答为空")
-        return content
+            error = RuntimeError("模型最终回答为空")
+            setattr(error, "tool_triggered", True)
+            setattr(error, "tool_names", tool_names)
+            raise error
+        return ToolRunResult(
+            answer=content,
+            observation=build_tool_call_observation(
+                tool_triggered=True,
+                tool_names=tool_names,
+                success=True,
+            ),
+        )

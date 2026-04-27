@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, TypedDict
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,14 @@ class CallObservation:
     error_message: Optional[str] = None
 
 
+class ToolCallObservation(TypedDict):
+    tool_triggered: bool
+    tool_names: list[str]
+    success: bool
+    error_type: Optional[str]
+    error_message: Optional[str]
+
+
 def _render_metric(value: Optional[int]) -> str:
     if value is None:
         return "unknown"
@@ -36,3 +44,20 @@ def format_observation_lines(observation: CallObservation) -> list[str]:
         f"error_type={observation.error_type or ''}",
         f"error_message={observation.error_message or ''}",
     ]
+
+
+def build_tool_call_observation(
+    *,
+    tool_triggered: bool,
+    tool_names: list[str],
+    success: bool,
+    error_type: Optional[str] = None,
+    error_message: Optional[str] = None,
+) -> ToolCallObservation:
+    return {
+        "tool_triggered": tool_triggered,
+        "tool_names": tool_names,
+        "success": success,
+        "error_type": error_type,
+        "error_message": error_message,
+    }

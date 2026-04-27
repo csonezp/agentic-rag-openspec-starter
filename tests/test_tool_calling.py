@@ -6,6 +6,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from agent_kb.tool_calling import (
     ToolCallingRunner,
     ToolDefinition,
+    ToolRunResult,
     ToolRequest,
     get_phase1_progress,
     get_phase1_progress_tool,
@@ -37,6 +38,11 @@ class FakeToolClient:
                 ],
             }
         return {"role": "assistant", "content": "Phase 1 已调用工具并生成回答。"}
+
+
+class NoToolClient:
+    def create_chat_completion(self, messages, tools=None):
+        return {"role": "assistant", "content": "无需调用工具，直接回答。"}
 
 
 class ToolCallingTest(unittest.TestCase):
@@ -109,6 +115,60 @@ class ToolCallingTest(unittest.TestCase):
         self.assertEqual(second_messages[-1]["role"], "tool")
         self.assertEqual(second_messages[-1]["tool_call_id"], "call_1")
 
+    def test_runner_returns_structured_observation_when_tool_called(self):
+        runner = ToolCallingRunner(
+            client=FakeToolClient(),
+            tools=[
+                ToolDefinition(
+                    schema=get_phase1_progress_tool(),
+                    handler=get_phase1_progress,
+                )
+            ],
+        )
+
+        result = runner.run_with_observation("请查询 Phase 1 进度")
+
+        self.assertEqual(
+            result,
+            ToolRunResult(
+                answer="Phase 1 已调用工具并生成回答。",
+                observation={
+                    "tool_triggered": True,
+                    "tool_names": ["get_phase1_progress"],
+                    "success": True,
+                    "error_type": None,
+                    "error_message": None,
+                },
+            ),
+        )
+
+    def test_runner_returns_structured_observation_when_no_tool_called(self):
+        runner = ToolCallingRunner(
+            client=NoToolClient(),
+            tools=[
+                ToolDefinition(
+                    schema=get_phase1_progress_tool(),
+                    handler=get_phase1_progress,
+                )
+            ],
+        )
+
+        result = runner.run_with_observation("请直接回答")
+
+        self.assertEqual(
+            result,
+            ToolRunResult(
+                answer="无需调用工具，直接回答。",
+                observation={
+                    "tool_triggered": False,
+                    "tool_names": [],
+                    "success": True,
+                    "error_type": None,
+                    "error_message": None,
+                },
+            ),
+        )
+
     def test_runner_rejects_unknown_tool(self):
         class UnknownToolClient(FakeToolClient):
             def create_chat_completion(self, messages, tools=None):
@@ -135,6 +195,44 @@ class ToolCallingTest(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "未注册工具"):
             runner.run("请查询 Phase 1 进度")
+
+    def test_runner_returns_structured_observation_when_tool_call_fails(self):
+        class UnknownToolClient(FakeToolClient):
+            def create_chat_completion(self, messages, tools=None):
+                return {
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "id": "call_1",
+                            "type": "function",
+                            "function": {"name": "unknown", "arguments": "{}"},
+                        }
+                    ],
+                }
+
+        runner = ToolCallingRunner(
+            client=UnknownToolClient(),
+            tools=[
+                ToolDefinition(
+                    schema=get_phase1_progress_tool(),
+                    handler=get_phase1_progress,
+                )
+            ],
+        )
+
+        result = runner.run_with_observation("请查询 Phase 1 进度")
+
+        self.assertEqual(result.answer, "")
+        self.assertEqual(
+            result.observation,
+            {
+                "tool_triggered": True,
+                "tool_names": ["unknown"],
+                "success": False,
+                "error_type": "ValueError",
+                "error_message": "未注册工具：unknown",
+            },
+        )
 
 
 class ToolCallingDemoScriptTest(unittest.TestCase):
