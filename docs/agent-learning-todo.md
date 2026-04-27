@@ -71,7 +71,7 @@ MVP 形态：
 - [x] 建立依赖管理。
 - [x] 添加 API Key 和模型选择的环境变量约定。
 - [x] 在仓库中添加简单运行手册。
-- [ ] 决定第一个知识源。
+- [x] 决定第一个知识源。
 
 验收标准：
 
@@ -231,3 +231,5 @@ MVP 形态：
 - 第一个知识源留到下一次继续决策。
 - 根据用户要求，把项目说明文档、进度文档等面向人的文本统一改为中文，并在 `AGENTS.md` 记录为项目级约定。
 - 接入 OpenSpec 目录结构，并为 Phase 1 创建 `phase-1-llm-basics` change，后续每个 Phase 默认通过独立 change 管理。
+- 完成 Phase 0 最后一项：第一个知识源确定为仓库内本地 Markdown 知识库，路径为 `knowledge/`。
+- 新增决策记录 `docs/decisions/0001-first-knowledge-source.md` 和 OpenSpec 知识源规格 `openspec/specs/knowledge-source/spec.md`。

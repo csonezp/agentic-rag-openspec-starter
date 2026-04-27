@@ -17,6 +17,7 @@
 - `tests/`：每个学习里程碑的回归测试。
 - `docs/`：路线图、进度、决策记录和运行手册。
 - `openspec/`：OpenSpec 项目说明、能力规格和阶段 change 文档。
+- `knowledge/`：第一个本地 Markdown 知识源，Phase 2 会从这里开始实现基础 RAG。
 
 ## 本地命令
 
