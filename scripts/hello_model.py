@@ -4,6 +4,7 @@ from argparse import ArgumentParser, Namespace
 from typing import Mapping, Optional, Sequence
 
 from agent_kb.config import AppConfig
+from agent_kb.deepseek_client import DeepSeekChatCompletionsModelClient
 from agent_kb.hello_agent import DryRunModelClient, HelloAgent
 from agent_kb.openai_client import ResponsesApiModelClient
 
@@ -17,7 +18,7 @@ def parse_args(argv: Sequence[str]) -> Namespace:
     parser.add_argument(
         "--real",
         action="store_true",
-        help="显式调用真实 OpenAI Responses API；默认使用 dry-run。",
+        help="显式调用真实模型 API；默认使用 dry-run。",
     )
     parser.add_argument(
         "--stream",
@@ -35,10 +36,19 @@ def main(
     config = AppConfig.from_env(os.environ if env is None else env)
 
     if args.real:
-        if not config.has_openai_api_key:
-            print("真实模式需要先配置 OPENAI_API_KEY。", file=sys.stderr)
+        if config.model_provider == "deepseek":
+            if not config.has_deepseek_api_key:
+                print("真实模式需要先配置 DEEPSEEK_API_KEY。", file=sys.stderr)
+                return 2
+            model_client = DeepSeekChatCompletionsModelClient(config)
+        elif config.model_provider == "openai":
+            if not config.has_openai_api_key:
+                print("真实模式需要先配置 OPENAI_API_KEY。", file=sys.stderr)
+                return 2
+            model_client = ResponsesApiModelClient(config)
+        else:
+            print(f"不支持的 MODEL_PROVIDER：{config.model_provider}", file=sys.stderr)
             return 2
-        model_client = ResponsesApiModelClient(config)
         mode = "real"
     else:
         # 默认 dry-run 保持项目在没有网络和 API Key 的情况下也能运行。
@@ -48,8 +58,12 @@ def main(
     agent = HelloAgent(model_client=model_client)
 
     print(f"mode={mode}")
+    print(f"provider={config.model_provider}")
     print(f"stream={str(args.stream).lower()}")
-    print(f"model={config.model}")
+    if config.model_provider == "deepseek":
+        print(f"model={config.deepseek_model}")
+    else:
+        print(f"model={config.model}")
     if args.stream:
         for chunk in agent.stream(args.prompt):
             print(chunk, end="", flush=True)

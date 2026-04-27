@@ -94,6 +94,7 @@ MVP 形态：
 - [x] 学习 Responses API 的请求和响应结构。
 - [x] 实现一个基础聊天调用。
 - [x] 添加流式输出。
+- [x] 接入 DeepSeek 官方 API 并完成真实模型调用。
 - [ ] 为一个小 schema 添加结构化输出。
 - [ ] 添加 function/tool calling，并接入一个本地函数。
 - [ ] 记录延迟、token 使用量、模型名和错误。
@@ -254,3 +255,5 @@ MVP 形态：
 - 基础聊天调用支持命令行 prompt、默认 dry-run、显式 `--real` 真实模式，以及缺少 API Key 时的中文错误提示。
 - 启动并完成学习小节 `learn-phase-1-streaming-output`，在独立分支 `codex/learn-phase-1-streaming-output` 添加流式输出。
 - 流式输出支持 dry-run `--stream`、真实模式 `--real --stream`，并解析 Responses API streaming 的 `response.output_text.delta` 事件。
+- 启动并完成学习小节 `learn-phase-1-deepseek-provider`，在独立分支 `codex/learn-phase-1-deepseek-provider` 接入 DeepSeek 官方 API。
+- DeepSeek 接入支持 `MODEL_PROVIDER=deepseek`、非流式真实调用和流式真实调用，并保留 OpenAI Responses API 客户端用于前序学习成果回看。

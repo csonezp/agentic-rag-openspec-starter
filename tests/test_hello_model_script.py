@@ -46,6 +46,18 @@ class HelloModelScriptTest(unittest.TestCase):
             exit_code = main(["--real", "真实调用"], env={})
 
         self.assertEqual(exit_code, 2)
+        self.assertIn("DEEPSEEK_API_KEY", stderr.getvalue())
+
+    def test_real_openai_mode_without_api_key_returns_openai_error(self):
+        stderr = io.StringIO()
+
+        with redirect_stderr(stderr):
+            exit_code = main(
+                ["--real", "真实调用"],
+                env={"MODEL_PROVIDER": "openai"},
+            )
+
+        self.assertEqual(exit_code, 2)
         self.assertIn("OPENAI_API_KEY", stderr.getvalue())
 
 

@@ -12,7 +12,7 @@ class ModelClient(Protocol):
 class DryRunModelClient:
     def complete(self, prompt: str) -> str:
         return (
-            "Dry-run 响应：配置 OPENAI_API_KEY 后可调用真实模型。"
+            "Dry-run 响应：配置真实模型 API Key 后可调用模型服务。"
             f"收到的提示词：{prompt}"
         )
 
