@@ -1,0 +1,24 @@
+from typing import Protocol
+
+
+class ModelClient(Protocol):
+    def complete(self, prompt: str) -> str:
+        """根据单次提示词返回模型响应。"""
+
+
+class DryRunModelClient:
+    def complete(self, prompt: str) -> str:
+        return (
+            "Dry-run 响应：配置 OPENAI_API_KEY 后可调用真实模型。"
+            f"收到的提示词：{prompt}"
+        )
+
+
+class HelloAgent:
+    def __init__(self, model_client: ModelClient) -> None:
+        self._model_client = model_client
+
+    def run(self, prompt: str) -> str:
+        if not prompt.strip():
+            raise ValueError("提示词不能为空")
+        return self._model_client.complete(prompt)
