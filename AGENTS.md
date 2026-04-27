@@ -10,3 +10,16 @@
 
 - 以 [docs/agent-learning-todo.md](docs/agent-learning-todo.md) 作为 Agent 开发学习路线和进度追踪依据。
 - 每次推进后，把完成项、关键决策和下一步问题记录回该文档。
+
+## OpenSpec 工作流
+
+- 本项目使用 `openspec/` 目录沉淀可追溯上下文。
+- 每个新的学习阶段或较大功能，都应创建一个独立 change，例如 `openspec/changes/phase-1-llm-basics/`。
+- 每个 change 至少包含：
+  - `proposal.md`：为什么做、做什么、不做什么、成功标准。
+  - `design.md`：技术方案、边界、风险和取舍。
+  - `tasks.md`：可验证的实施清单，推进时逐项勾选。
+  - `specs/<capability>/spec.md`：能力级别的需求增量。
+- 开始实现前，先读取对应 change 的 `proposal.md`、`design.md`、`tasks.md` 和相关 `specs/`。
+- 完成并验证后，把任务勾选状态、学习记录和关键决策写回 change 文档；如果后续安装了 OpenSpec CLI，再执行 validate/archive。
+- `docs/agent-learning-todo.md` 负责总路线和阶段状态，OpenSpec change 负责每个阶段的详细上下文。

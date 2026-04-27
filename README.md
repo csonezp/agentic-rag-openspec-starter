@@ -16,6 +16,7 @@
 - `scripts/`：本地学习和开发入口脚本。
 - `tests/`：每个学习里程碑的回归测试。
 - `docs/`：路线图、进度、决策记录和运行手册。
+- `openspec/`：OpenSpec 项目说明、能力规格和阶段 change 文档。
 
 ## 本地命令
 
@@ -40,3 +41,5 @@ Phase 0 故意使用 dry-run 模型客户端，这样项目在没有网络和 AP
 ## 当前学习主线
 
 共享路线图和进度清单见 [docs/agent-learning-todo.md](docs/agent-learning-todo.md)。
+
+每个新的学习阶段或较大功能，使用 `openspec/changes/` 下的独立 change 管理上下文。例如 Phase 1 对应 [openspec/changes/phase-1-llm-basics](openspec/changes/phase-1-llm-basics)。

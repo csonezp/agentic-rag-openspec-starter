@@ -56,6 +56,14 @@ MVP 形态：
 - 如果未来新增 README、设计文档、任务文档或 session log，默认使用中文。
 - 这个约定同时记录在根目录 `AGENTS.md`，方便后续代理继续遵守。
 
+## OpenSpec 管理约定
+
+- 总学习路线继续由本文档维护。
+- 每个学习阶段或较大功能使用 `openspec/changes/<change-id>/` 管理详细上下文。
+- Phase 1 起，每个 Phase 默认创建独立 change，包含 `proposal.md`、`design.md`、`tasks.md` 和能力规格增量。
+- 实现前读取对应 change，推进中更新任务勾选，完成后记录关键决策和验证结果。
+- 如果后续安装了 OpenSpec CLI，再补充执行 `openspec validate` 和 `openspec archive`。
+
 ## Phase 0：搭建与定位
 
 - [x] 创建最小项目结构。
@@ -222,3 +230,4 @@ MVP 形态：
 - 添加最小 Python 包、unittest 测试、环境变量模板、dry-run hello agent 脚本和 README 运行手册。
 - 第一个知识源留到下一次继续决策。
 - 根据用户要求，把项目说明文档、进度文档等面向人的文本统一改为中文，并在 `AGENTS.md` 记录为项目级约定。
+- 接入 OpenSpec 目录结构，并为 Phase 1 创建 `phase-1-llm-basics` change，后续每个 Phase 默认通过独立 change 管理。
