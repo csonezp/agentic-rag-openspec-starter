@@ -70,6 +70,14 @@ def get_phase1_progress_tool() -> dict:
 
 def parse_tool_request(tool_call: dict) -> ToolRequest:
     function = tool_call.get("function", {})
+    call_id = tool_call.get("id")
+    if not call_id:
+        raise ValueError("缺少工具调用 id")
+
+    name = function.get("name")
+    if not name:
+        raise ValueError("缺少工具名称")
+
     arguments_text = function.get("arguments") or "{}"
     try:
         arguments = json.loads(arguments_text)
@@ -80,8 +88,8 @@ def parse_tool_request(tool_call: dict) -> ToolRequest:
         raise ValueError("工具 arguments 必须是 JSON object")
 
     return ToolRequest(
-        call_id=tool_call.get("id", ""),
-        name=function.get("name", ""),
+        call_id=call_id,
+        name=name,
         arguments=arguments,
     )
 
@@ -142,6 +150,17 @@ class ToolCallingRunner:
                 ),
             )
 
+    def _annotate_tool_error(
+        self,
+        exc: Exception,
+        *,
+        tool_triggered: bool,
+        tool_names: list[str],
+    ) -> Exception:
+        setattr(exc, "tool_triggered", tool_triggered)
+        setattr(exc, "tool_names", tool_names)
+        return exc
+
     def _run_once(self, prompt: str) -> ToolRunResult:
         messages = [{"role": "user", "content": prompt}]
         tool_schemas = [tool.schema for tool in self._tools.values()]
@@ -168,41 +187,41 @@ class ToolCallingRunner:
                         success=True,
                     ),
                 )
-            error = RuntimeError("模型没有返回 tool_calls 或 content")
-            setattr(error, "tool_triggered", False)
-            setattr(error, "tool_names", [])
-            raise error
-
-        messages.append(assistant_message)
-        for tool_call in tool_calls:
-            request = parse_tool_request(tool_call)
-            if request.name not in self._tools:
-                error = ValueError(f"未注册工具：{request.name}")
-                setattr(error, "tool_triggered", True)
-                setattr(error, "tool_names", tool_names)
-                raise error
-            if request.arguments:
-                error = ValueError(f"工具 {request.name} 不接受参数")
-                setattr(error, "tool_triggered", True)
-                setattr(error, "tool_names", tool_names)
-                raise error
-
-            result = self._tools[request.name].handler()
-            messages.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": request.call_id,
-                    "content": result,
-                }
+            raise self._annotate_tool_error(
+                RuntimeError("模型没有返回 tool_calls 或 content"),
+                tool_triggered=False,
+                tool_names=[],
             )
 
-        final_message = self._client.create_chat_completion(messages)
-        content = final_message.get("content")
-        if not content:
-            error = RuntimeError("模型最终回答为空")
-            setattr(error, "tool_triggered", True)
-            setattr(error, "tool_names", tool_names)
-            raise error
+        try:
+            messages.append(assistant_message)
+            for tool_call in tool_calls:
+                request = parse_tool_request(tool_call)
+                if request.name not in self._tools:
+                    raise ValueError(f"未注册工具：{request.name}")
+                if request.arguments:
+                    raise ValueError(f"工具 {request.name} 不接受参数")
+
+                result = self._tools[request.name].handler()
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": request.call_id,
+                        "content": result,
+                    }
+                )
+
+            final_message = self._client.create_chat_completion(messages)
+            content = final_message.get("content")
+            if not content:
+                raise RuntimeError("模型最终回答为空")
+        except Exception as exc:
+            raise self._annotate_tool_error(
+                exc,
+                tool_triggered=True,
+                tool_names=tool_names,
+            ) from exc
+
         return ToolRunResult(
             answer=content,
             observation=build_tool_call_observation(

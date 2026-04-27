@@ -95,6 +95,28 @@ class ToolCallingTest(unittest.TestCase):
                 }
             )
 
+    def test_parse_tool_request_rejects_missing_id(self):
+        with self.assertRaisesRegex(ValueError, "缺少工具调用 id"):
+            parse_tool_request(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "get_phase1_progress",
+                        "arguments": "{}",
+                    },
+                }
+            )
+
+    def test_parse_tool_request_rejects_missing_name(self):
+        with self.assertRaisesRegex(ValueError, "缺少工具名称"):
+            parse_tool_request(
+                {
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {"arguments": "{}"},
+                }
+            )
+
     def test_runner_executes_tool_and_gets_final_answer(self):
         client = FakeToolClient()
         runner = ToolCallingRunner(
@@ -231,6 +253,134 @@ class ToolCallingTest(unittest.TestCase):
                 "success": False,
                 "error_type": "ValueError",
                 "error_message": "未注册工具：unknown",
+            },
+        )
+
+    def test_runner_keeps_tool_observation_when_arguments_are_invalid(self):
+        class InvalidArgumentsClient(FakeToolClient):
+            def create_chat_completion(self, messages, tools=None):
+                return {
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "id": "call_1",
+                            "type": "function",
+                            "function": {
+                                "name": "get_phase1_progress",
+                                "arguments": "not-json",
+                            },
+                        }
+                    ],
+                }
+
+        runner = ToolCallingRunner(
+            client=InvalidArgumentsClient(),
+            tools=[
+                ToolDefinition(
+                    schema=get_phase1_progress_tool(),
+                    handler=get_phase1_progress,
+                )
+            ],
+        )
+
+        result = runner.run_with_observation("请查询 Phase 1 进度")
+
+        self.assertEqual(result.answer, "")
+        self.assertEqual(result.observation["tool_triggered"], True)
+        self.assertEqual(result.observation["tool_names"], ["get_phase1_progress"])
+        self.assertEqual(result.observation["error_type"], "ValueError")
+        self.assertIn("arguments", result.observation["error_message"])
+
+    def test_runner_keeps_tool_observation_when_handler_raises(self):
+        class HandlerRaisesClient(FakeToolClient):
+            pass
+
+        def broken_handler():
+            raise RuntimeError("handler boom")
+
+        runner = ToolCallingRunner(
+            client=HandlerRaisesClient(),
+            tools=[
+                ToolDefinition(
+                    schema=get_phase1_progress_tool(),
+                    handler=broken_handler,
+                )
+            ],
+        )
+
+        result = runner.run_with_observation("请查询 Phase 1 进度")
+
+        self.assertEqual(result.answer, "")
+        self.assertEqual(
+            result.observation,
+            {
+                "tool_triggered": True,
+                "tool_names": ["get_phase1_progress"],
+                "success": False,
+                "error_type": "RuntimeError",
+                "error_message": "handler boom",
+            },
+        )
+
+    def test_runner_keeps_tool_observation_when_second_model_call_fails(self):
+        class SecondCallFailsClient(FakeToolClient):
+            def create_chat_completion(self, messages, tools=None):
+                if len(messages) == 1:
+                    return super().create_chat_completion(messages, tools=tools)
+                raise RuntimeError("second call boom")
+
+        runner = ToolCallingRunner(
+            client=SecondCallFailsClient(),
+            tools=[
+                ToolDefinition(
+                    schema=get_phase1_progress_tool(),
+                    handler=get_phase1_progress,
+                )
+            ],
+        )
+
+        result = runner.run_with_observation("请查询 Phase 1 进度")
+
+        self.assertEqual(result.answer, "")
+        self.assertEqual(
+            result.observation,
+            {
+                "tool_triggered": True,
+                "tool_names": ["get_phase1_progress"],
+                "success": False,
+                "error_type": "RuntimeError",
+                "error_message": "second call boom",
+            },
+        )
+
+    def test_runner_keeps_tool_observation_when_final_content_is_empty(self):
+        class EmptyFinalContentClient(FakeToolClient):
+            def create_chat_completion(self, messages, tools=None):
+                if len(messages) == 1:
+                    return super().create_chat_completion(messages, tools=tools)
+                return {"role": "assistant", "content": ""}
+
+        runner = ToolCallingRunner(
+            client=EmptyFinalContentClient(),
+            tools=[
+                ToolDefinition(
+                    schema=get_phase1_progress_tool(),
+                    handler=get_phase1_progress,
+                )
+            ],
+        )
+
+        result = runner.run_with_observation("请查询 Phase 1 进度")
+
+        self.assertEqual(result.answer, "")
+        self.assertEqual(
+            result.observation,
+            {
+                "tool_triggered": True,
+                "tool_names": ["get_phase1_progress"],
+                "success": False,
+                "error_type": "RuntimeError",
+                "error_message": "模型最终回答为空",
             },
         )
 

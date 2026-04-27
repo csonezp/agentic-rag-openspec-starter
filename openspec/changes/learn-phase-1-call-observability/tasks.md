@@ -17,6 +17,7 @@
   - 2026-04-27(task1): 恢复 `stream()` 的真正流式语义，不再先全量缓冲后输出；统一 `complete_with_observation`、`parse_deepseek_stream_events` 和 `stream_with_observation` 在 200 但非法 JSON、畸形 SSE、`payload.error` 场景下抛出携带 `observation` 的 `DeepSeekCallError`；补充 `error_type` 摘要输出，并通过 `tests.test_deepseek_client`、`tests.test_call_observability` 回归验证。
 - [x] 3.3 为 tool calling 链路补充最小观测信息。
   - 2026-04-27(task1): 为 `ToolCallingRunner` 新增 `run_with_observation()`，返回独立的结构化观测结果；最小字段覆盖 `tool_triggered`、`tool_names`、`success`、`error_type` 和 `error_message`，并保持现有 `run()`/CLI 输出契约不变；已通过 `tests.test_tool_calling` 和 `tests.test_call_observability` 回归验证。
+  - 2026-04-27(task3-review): 修复进入 `tool_calls` 分支后在 `parse_tool_request` 失败、handler 抛错、第二次 `create_chat_completion` 失败、最终 `content` 为空等路径下观测字段丢失的问题；补充 `parse_tool_request` 对缺失 `id`/`name` 的清晰校验，以及 `run_with_observation()` 失败路径测试；已通过 `tests.test_tool_calling` 和 `tests.test_call_observability` 回归验证。
 - [ ] 3.4 更新 CLI 脚本，输出统一的观测摘要。
 
 ## 4. 文档与验证
