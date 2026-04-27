@@ -5,7 +5,10 @@ from typing import Mapping, Optional, Sequence
 
 from agent_kb.call_observability import format_observation_lines
 from agent_kb.config import AppConfig
-from agent_kb.deepseek_client import DeepSeekChatCompletionsModelClient
+from agent_kb.deepseek_client import (
+    DeepSeekCallError,
+    DeepSeekChatCompletionsModelClient,
+)
 from agent_kb.hello_agent import DryRunModelClient, HelloAgent
 from agent_kb.openai_client import ResponsesApiModelClient
 
@@ -71,16 +74,21 @@ def main(
         print(f"model={config.model}")
 
     if args.real and config.model_provider == "deepseek":
-        if args.stream:
-            result = model_client.stream_with_observation(args.prompt)
-            for chunk in result.chunks:
-                print(chunk, end="", flush=True)
-            print()
-            _print_observation_summary(format_observation_lines(result.observation))
-        else:
-            result = model_client.complete_with_observation(args.prompt)
-            print(result.text)
-            _print_observation_summary(format_observation_lines(result.observation))
+        try:
+            if args.stream:
+                result = model_client.stream_with_observation(args.prompt)
+                for chunk in result.chunks:
+                    print(chunk, end="", flush=True)
+                print()
+            else:
+                result = model_client.complete_with_observation(args.prompt)
+                print(result.text)
+        except DeepSeekCallError as exc:
+            _print_observation_summary(format_observation_lines(exc.observation))
+            print(str(exc), file=sys.stderr)
+            return 1
+
+        _print_observation_summary(format_observation_lines(result.observation))
         return 0
 
     agent = HelloAgent(model_client=model_client)

@@ -457,6 +457,52 @@ class ToolCallingDemoScriptTest(unittest.TestCase):
         self.assertIn("tool_names=get_phase1_progress", stdout.getvalue())
         self.assertIn("success=true", stdout.getvalue())
 
+    def test_real_mode_prints_tool_observation_before_non_zero_exit_on_failure(self):
+        class FakeDeepSeekClient:
+            def __init__(self, config):
+                self.config = config
+
+        class FakeRunner:
+            def __init__(self, client, tools):
+                self.client = client
+                self.tools = tools
+
+            def run_with_observation(self, prompt):
+                return ToolRunResult(
+                    answer="",
+                    observation={
+                        "tool_triggered": True,
+                        "tool_names": ["get_phase1_progress"],
+                        "success": False,
+                        "error_type": "RuntimeError",
+                        "error_message": "second call boom",
+                    },
+                )
+
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with unittest.mock.patch(
+            "scripts.tool_calling_demo.DeepSeekChatCompletionsModelClient",
+            FakeDeepSeekClient,
+        ):
+            with unittest.mock.patch(
+                "scripts.tool_calling_demo.ToolCallingRunner",
+                FakeRunner,
+            ):
+                with redirect_stdout(stdout), redirect_stderr(stderr):
+                    exit_code = main(
+                        ["--real", "请查询 Phase 1 进度"],
+                        env={"DEEPSEEK_API_KEY": "deepseek-key"},
+                    )
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("observation:", stdout.getvalue())
+        self.assertIn("tool_triggered=true", stdout.getvalue())
+        self.assertIn("success=false", stdout.getvalue())
+        self.assertIn("error_type=RuntimeError", stdout.getvalue())
+        self.assertIn("error_message=second call boom", stdout.getvalue())
+        self.assertIn("second call boom", stderr.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

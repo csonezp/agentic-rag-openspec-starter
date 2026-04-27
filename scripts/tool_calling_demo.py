@@ -61,19 +61,25 @@ def main(
             )
         ],
     )
+    print(f"mode={mode}")
+    print(f"provider={config.model_provider}")
+    print(f"model={config.deepseek_model}")
+
     if args.real:
         result = runner.run_with_observation(args.prompt)
         if not result.observation["success"]:
-            raise RuntimeError(
-                result.observation["error_message"] or "tool calling 运行失败"
+            _print_observation_summary(
+                format_tool_call_observation_lines(result.observation)
             )
+            print(
+                result.observation["error_message"] or "tool calling 运行失败",
+                file=sys.stderr,
+            )
+            return 1
         answer = result.answer
     else:
         answer = runner.run(args.prompt)
 
-    print(f"mode={mode}")
-    print(f"provider={config.model_provider}")
-    print(f"model={config.deepseek_model}")
     print(answer)
     if args.real:
         _print_observation_summary(
