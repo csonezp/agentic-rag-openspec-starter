@@ -64,6 +64,15 @@ MVP 形态：
 - 实现前读取对应 change，推进中更新任务勾选，完成后记录关键决策和验证结果。
 - 如果后续安装了 OpenSpec CLI，再补充执行 `openspec validate` 和 `openspec archive`。
 
+## 学习小节启动约定
+
+- 用户通过“学习 Phase X 的某个小节”启动学习单元。
+- 每个学习小节优先创建独立 OpenSpec change，而不是一次性推进整个 Phase。
+- 如果小节已完成，则不创建 change、不修改文件，只说明已完成。
+- 如果小节未完成，change id 使用 `learn-phase-<n>-<topic>` 形式。
+- 创建 change 后，先说明本次改了哪些文件、为什么这样改，再等待用户确认是否进入学习和实验。
+- 小节完成时，必须更新 change 任务、本文档勾选状态，以及学习总结或决策记录。
+
 ## Phase 0：搭建与定位
 
 - [x] 创建最小项目结构。
