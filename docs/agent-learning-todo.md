@@ -96,7 +96,7 @@ MVP 形态：
 - [x] 添加流式输出。
 - [x] 接入 DeepSeek 官方 API 并完成真实模型调用。
 - [x] 为一个小 schema 添加结构化输出。
-- [ ] 添加 function/tool calling，并接入一个本地函数。
+- [x] 添加 function/tool calling，并接入一个本地函数。
 - [ ] 记录延迟、token 使用量、模型名和错误。
 
 验收标准：
@@ -259,3 +259,5 @@ MVP 形态：
 - DeepSeek 接入支持 `MODEL_PROVIDER=deepseek`、非流式真实调用和流式真实调用，并保留 OpenAI Responses API 客户端用于前序学习成果回看。
 - 启动并完成学习小节 `learn-phase-1-structured-output-schema`，在独立分支 `codex/learn-phase-1-structured-output-schema` 学习 DeepSeek JSON Output。
 - 结构化输出小节实现 `LearningBrief` 小 schema、本地字段校验、dry-run 演示和真实 DeepSeek JSON Output 验证。
+- 启动并完成学习小节 `learn-phase-1-tool-calling-local-function`，在独立分支 `codex/learn-phase-1-tool-calling-local-function` 学习 DeepSeek Tool Calls。
+- Tool calling 小节实现 `get_phase1_progress` 本地只读函数、工具 allowlist、参数校验、模型 tool call 到本地执行再到最终回答的闭环。

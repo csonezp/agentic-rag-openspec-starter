@@ -5,6 +5,7 @@ from unittest.mock import patch
 from agent_kb.config import AppConfig
 from agent_kb.deepseek_client import (
     DeepSeekChatCompletionsModelClient,
+    extract_tool_calls,
     parse_deepseek_stream_events,
 )
 
@@ -92,6 +93,78 @@ class DeepSeekClientTest(unittest.TestCase):
         self.assertEqual(captured["body"]["response_format"], {"type": "json_object"})
         self.assertEqual(captured["body"]["max_tokens"], 256)
         self.assertFalse(captured["body"]["stream"])
+
+    def test_create_tool_call_request_sends_tools(self):
+        config = AppConfig.from_env({"DEEPSEEK_API_KEY": "deepseek-key"})
+        captured = {}
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_phase1_progress",
+                    "description": "获取 Phase 1 学习进度。",
+                    "parameters": {"type": "object", "properties": {}},
+                },
+            }
+        ]
+
+        def fake_urlopen(request, timeout):
+            captured["body"] = json.loads(request.data.decode("utf-8"))
+            return FakeResponse(
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "role": "assistant",
+                                "tool_calls": [
+                                    {
+                                        "id": "call_1",
+                                        "type": "function",
+                                        "function": {
+                                            "name": "get_phase1_progress",
+                                            "arguments": "{}",
+                                        },
+                                    }
+                                ],
+                            }
+                        }
+                    ]
+                }
+            )
+
+        with patch("agent_kb.deepseek_client.urllib.request.urlopen", fake_urlopen):
+            message = DeepSeekChatCompletionsModelClient(config).create_chat_completion(
+                [{"role": "user", "content": "查询进度"}],
+                tools=tools,
+            )
+
+        self.assertEqual(captured["body"]["tools"], tools)
+        self.assertEqual(message["tool_calls"][0]["function"]["name"], "get_phase1_progress")
+
+    def test_extract_tool_calls_reads_assistant_tool_calls(self):
+        payload = {
+            "choices": [
+                {
+                    "message": {
+                        "tool_calls": [
+                            {
+                                "id": "call_1",
+                                "type": "function",
+                                "function": {
+                                    "name": "get_phase1_progress",
+                                    "arguments": "{}",
+                                },
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+
+        tool_calls = extract_tool_calls(payload)
+
+        self.assertEqual(tool_calls[0]["id"], "call_1")
+        self.assertEqual(tool_calls[0]["function"]["name"], "get_phase1_progress")
 
     def test_parse_stream_events_reads_delta_content_until_done(self):
         lines = [
