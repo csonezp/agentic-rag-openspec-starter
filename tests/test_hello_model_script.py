@@ -11,6 +11,7 @@ class HelloModelScriptTest(unittest.TestCase):
 
         self.assertEqual(args.prompt, DEFAULT_PROMPT)
         self.assertFalse(args.real)
+        self.assertFalse(args.stream)
 
     def test_parse_args_uses_prompt_from_command_line(self):
         args = parse_args(["请解释 Responses API"])
@@ -26,6 +27,17 @@ class HelloModelScriptTest(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("mode=dry-run", stdout.getvalue())
         self.assertIn("来自命令行的提示词", stdout.getvalue())
+
+    def test_main_streams_in_dry_run_mode(self):
+        stdout = io.StringIO()
+
+        with redirect_stdout(stdout):
+            exit_code = main(["--stream", "流式提示词"], env={})
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("mode=dry-run", stdout.getvalue())
+        self.assertIn("stream=true", stdout.getvalue())
+        self.assertIn("流式提示词", stdout.getvalue())
 
     def test_real_mode_without_api_key_returns_error(self):
         stderr = io.StringIO()

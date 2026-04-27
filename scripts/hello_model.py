@@ -19,6 +19,11 @@ def parse_args(argv: Sequence[str]) -> Namespace:
         action="store_true",
         help="显式调用真实 OpenAI Responses API；默认使用 dry-run。",
     )
+    parser.add_argument(
+        "--stream",
+        action="store_true",
+        help="流式输出响应片段。",
+    )
     return parser.parse_args(argv)
 
 
@@ -41,11 +46,17 @@ def main(
         mode = "dry-run"
 
     agent = HelloAgent(model_client=model_client)
-    response = agent.run(args.prompt)
 
     print(f"mode={mode}")
+    print(f"stream={str(args.stream).lower()}")
     print(f"model={config.model}")
-    print(response)
+    if args.stream:
+        for chunk in agent.stream(args.prompt):
+            print(chunk, end="", flush=True)
+        print()
+    else:
+        response = agent.run(args.prompt)
+        print(response)
     return 0
 
 

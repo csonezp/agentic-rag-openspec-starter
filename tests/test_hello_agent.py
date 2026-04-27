@@ -7,6 +7,10 @@ class FakeModelClient(ModelClient):
     def complete(self, prompt: str) -> str:
         return f"echo: {prompt}"
 
+    def stream(self, prompt: str):
+        yield "echo: "
+        yield prompt
+
 
 class HelloAgentTest(unittest.TestCase):
     def test_runs_prompt_through_injected_model_client(self):
@@ -15,6 +19,13 @@ class HelloAgentTest(unittest.TestCase):
         result = agent.run("Say hello to agent development.")
 
         self.assertEqual(result, "echo: Say hello to agent development.")
+
+    def test_streams_prompt_through_injected_model_client(self):
+        agent = HelloAgent(model_client=FakeModelClient())
+
+        chunks = list(agent.stream("Say hello."))
+
+        self.assertEqual(chunks, ["echo: ", "Say hello."])
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import json
 import urllib.error
 import urllib.request
+from typing import Iterable
 
 from agent_kb.config import AppConfig
 from agent_kb.hello_agent import ModelClient
@@ -38,6 +39,49 @@ class ResponsesApiModelClient(ModelClient):
             raise RuntimeError(f"Responses API 网络请求失败：{exc.reason}") from exc
 
         return _extract_output_text(payload)
+
+    def stream(self, prompt: str) -> Iterable[str]:
+        request = urllib.request.Request(
+            "https://api.openai.com/v1/responses",
+            data=json.dumps(
+                {
+                    "model": self._config.model,
+                    "input": prompt,
+                    "stream": True,
+                }
+            ).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self._config.openai_api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                yield from parse_response_stream_events(response)
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Responses API 请求失败：{exc.code} {detail}") from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"Responses API 网络请求失败：{exc.reason}") from exc
+
+
+def parse_response_stream_events(lines: Iterable[bytes]) -> Iterable[str]:
+    for raw_line in lines:
+        line = raw_line.decode("utf-8").strip()
+        if not line.startswith("data: "):
+            continue
+
+        payload = json.loads(line.removeprefix("data: "))
+        event_type = payload.get("type")
+        if event_type == "response.output_text.delta":
+            delta = payload.get("delta")
+            if delta:
+                yield delta
+        elif event_type == "error":
+            message = payload.get("message") or payload.get("error") or payload
+            raise RuntimeError(f"Responses API streaming 返回错误：{message}")
 
 
 def _extract_output_text(payload: dict) -> str:

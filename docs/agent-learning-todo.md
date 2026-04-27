@@ -93,7 +93,7 @@ MVP 形态：
 
 - [x] 学习 Responses API 的请求和响应结构。
 - [x] 实现一个基础聊天调用。
-- [ ] 添加流式输出。
+- [x] 添加流式输出。
 - [ ] 为一个小 schema 添加结构化输出。
 - [ ] 添加 function/tool calling，并接入一个本地函数。
 - [ ] 记录延迟、token 使用量、模型名和错误。
@@ -252,3 +252,5 @@ MVP 形态：
 - 完成 Responses API 请求和响应结构学习笔记，记录官方字段结构、最小请求/响应示例、input items、input token count，以及与 Chat Completions 的心智差异。
 - 启动并完成学习小节 `learn-phase-1-basic-chat-call`，在独立分支 `codex/learn-phase-1-basic-chat-call` 实现基础聊天调用。
 - 基础聊天调用支持命令行 prompt、默认 dry-run、显式 `--real` 真实模式，以及缺少 API Key 时的中文错误提示。
+- 启动并完成学习小节 `learn-phase-1-streaming-output`，在独立分支 `codex/learn-phase-1-streaming-output` 添加流式输出。
+- 流式输出支持 dry-run `--stream`、真实模式 `--real --stream`，并解析 Responses API streaming 的 `response.output_text.delta` 事件。
