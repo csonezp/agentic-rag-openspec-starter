@@ -15,6 +15,7 @@ class CallObservation:
     model: str
     latency_ms: int
     usage: UsageMetrics
+    error_type: Optional[str] = None
     error_message: Optional[str] = None
 
 
