@@ -22,6 +22,13 @@ def _print_observation_summary(lines: Sequence[str]) -> None:
         print(line)
 
 
+def _require_observation(result) -> object:
+    observation = getattr(result, "observation", None)
+    if observation is None:
+        raise RuntimeError("DeepSeek 流式调用结束后未生成 observation")
+    return observation
+
+
 def parse_args(argv: Sequence[str]) -> Namespace:
     parser = ArgumentParser(description="运行基础聊天调用学习脚本。")
     parser.add_argument("prompt", nargs="?", default=DEFAULT_PROMPT)
@@ -88,7 +95,9 @@ def main(
             print(str(exc), file=sys.stderr)
             return 1
 
-        _print_observation_summary(format_observation_lines(result.observation))
+        _print_observation_summary(
+            format_observation_lines(_require_observation(result))
+        )
         return 0
 
     agent = HelloAgent(model_client=model_client)

@@ -2,6 +2,7 @@ import io
 import json
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
+from unittest.mock import patch
 
 from agent_kb.tool_calling import (
     ToolCallingRunner,
@@ -436,11 +437,11 @@ class ToolCallingDemoScriptTest(unittest.TestCase):
                 )
 
         stdout = io.StringIO()
-        with unittest.mock.patch(
+        with patch(
             "scripts.tool_calling_demo.DeepSeekChatCompletionsModelClient",
             FakeDeepSeekClient,
         ):
-            with unittest.mock.patch(
+            with patch(
                 "scripts.tool_calling_demo.ToolCallingRunner",
                 FakeRunner,
             ):
@@ -481,11 +482,11 @@ class ToolCallingDemoScriptTest(unittest.TestCase):
 
         stdout = io.StringIO()
         stderr = io.StringIO()
-        with unittest.mock.patch(
+        with patch(
             "scripts.tool_calling_demo.DeepSeekChatCompletionsModelClient",
             FakeDeepSeekClient,
         ):
-            with unittest.mock.patch(
+            with patch(
                 "scripts.tool_calling_demo.ToolCallingRunner",
                 FakeRunner,
             ):

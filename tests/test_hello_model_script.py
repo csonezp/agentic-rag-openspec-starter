@@ -195,6 +195,51 @@ class HelloModelScriptTest(unittest.TestCase):
         self.assertIn("input_tokens=unknown", stdout.getvalue())
         self.assertIn("total_tokens=unknown", stdout.getvalue())
 
+    def test_real_deepseek_stream_mode_supports_lazy_observation_result(self):
+        class FakeDeepSeekClient:
+            def __init__(self, config):
+                self.config = config
+
+            def stream_with_observation(self, prompt):
+                result = StreamResult(chunks=())
+
+                def iter_chunks():
+                    yield "第一段"
+                    yield "第二段"
+                    result.observation = CallObservation(
+                        provider="deepseek",
+                        model="deepseek-chat",
+                        latency_ms=654,
+                        usage=UsageMetrics(
+                            input_tokens=9,
+                            output_tokens=4,
+                            total_tokens=13,
+                        ),
+                        error_type=None,
+                        error_message=None,
+                    )
+
+                result.chunks = iter_chunks()
+                return result
+
+        stdout = io.StringIO()
+        with patch(
+            "scripts.hello_model.DeepSeekChatCompletionsModelClient",
+            FakeDeepSeekClient,
+        ):
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    ["--real", "--stream", "流式真实调用"],
+                    env={"DEEPSEEK_API_KEY": "deepseek-key"},
+                )
+
+        output = stdout.getvalue()
+        self.assertEqual(exit_code, 0)
+        self.assertIn("第一段第二段", output)
+        self.assertIn("observation:", output)
+        self.assertIn("latency_ms=654", output)
+        self.assertLess(output.index("第一段第二段"), output.index("observation:"))
+
     def test_real_deepseek_stream_mode_prints_observation_before_non_zero_exit_on_error(
         self,
     ):

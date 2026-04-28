@@ -16,10 +16,10 @@ class CompletionResult:
     observation: CallObservation
 
 
-@dataclass(frozen=True)
+@dataclass
 class StreamResult:
-    chunks: list[str]
-    observation: CallObservation
+    chunks: Iterable[str]
+    observation: Optional[CallObservation] = None
 
 
 class DeepSeekCallError(RuntimeError):
@@ -182,14 +182,7 @@ class DeepSeekChatCompletionsModelClient(ModelClient):
         metadata: dict = {}
 
         try:
-            with urllib.request.urlopen(request, timeout=60) as response:
-                chunks = list(
-                    parse_deepseek_stream_events(
-                        response,
-                        default_model=self._config.deepseek_model,
-                        metadata=metadata,
-                    )
-                )
+            response = urllib.request.urlopen(request, timeout=60)
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")
             _raise_call_error(
@@ -217,15 +210,45 @@ class DeepSeekChatCompletionsModelClient(ModelClient):
                 cause=exc,
             )
 
-        observation = CallObservation(
-            provider="deepseek",
-            model=metadata.get("model") or self._config.deepseek_model,
-            latency_ms=_compute_latency_ms(started_at),
-            usage=_extract_usage(metadata),
-            error_type=None,
-            error_message=None,
-        )
-        return StreamResult(chunks=chunks, observation=observation)
+        result = StreamResult(chunks=())
+
+        def iter_chunks() -> Iterable[str]:
+            try:
+                with response as response_stream:
+                    yield from parse_deepseek_stream_events(
+                        response_stream,
+                        default_model=self._config.deepseek_model,
+                        metadata=metadata,
+                    )
+            except urllib.error.URLError as exc:
+                _raise_call_error(
+                    config=self._config,
+                    started_at=started_at,
+                    error_type="url_error",
+                    error_message=f"DeepSeek API 网络请求失败：{exc.reason}",
+                    cause=exc,
+                )
+            except DeepSeekCallError as exc:
+                _raise_call_error(
+                    config=self._config,
+                    started_at=started_at,
+                    model=exc.observation.model,
+                    error_type=exc.observation.error_type or "api_error",
+                    error_message=str(exc),
+                    cause=exc,
+                )
+
+            result.observation = CallObservation(
+                provider="deepseek",
+                model=metadata.get("model") or self._config.deepseek_model,
+                latency_ms=_compute_latency_ms(started_at),
+                usage=_extract_usage(metadata),
+                error_type=None,
+                error_message=None,
+            )
+
+        result.chunks = iter_chunks()
+        return result
 
     def _build_request(
         self,

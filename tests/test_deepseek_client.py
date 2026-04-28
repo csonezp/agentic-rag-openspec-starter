@@ -396,6 +396,41 @@ class DeepSeekClientTest(unittest.TestCase):
         self.assertEqual(chunks, ["流"])
         self.assertTrue(captured["body"]["stream"])
 
+    def test_stream_with_observation_yields_first_chunk_before_stream_finishes(self):
+        config = AppConfig.from_env({"DEEPSEEK_API_KEY": "deepseek-key"})
+        state = {"finished": False}
+
+        class StreamingLines:
+            def __iter__(self):
+                yield (
+                    'data: {"choices":[{"delta":{"content":"首块"}}]}\n'
+                ).encode("utf-8")
+                yield (
+                    'data: {"choices":[{"delta":{"content":"尾块"}}],"usage":{"prompt_tokens":3,"completion_tokens":2,"total_tokens":5}}\n'
+                ).encode("utf-8")
+                state["finished"] = True
+                yield b"data: [DONE]\n"
+
+        class StreamingResponse:
+            def __enter__(self):
+                return StreamingLines()
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+        def fake_urlopen(request, timeout):
+            return StreamingResponse()
+
+        with patch("agent_kb.deepseek_client.urllib.request.urlopen", fake_urlopen):
+            result = DeepSeekChatCompletionsModelClient(
+                config
+            ).stream_with_observation("流式")
+            chunks = iter(result.chunks)
+            first_chunk = next(chunks)
+
+        self.assertEqual(first_chunk, "首块")
+        self.assertFalse(state["finished"])
+
     def test_stream_with_observation_returns_chunks_and_usage_summary(self):
         config = AppConfig.from_env({"DEEPSEEK_API_KEY": "deepseek-key"})
         captured = {}
@@ -429,8 +464,10 @@ class DeepSeekClientTest(unittest.TestCase):
                 result = DeepSeekChatCompletionsModelClient(
                     config
                 ).stream_with_observation("流式")
+                chunks = list(result.chunks)
 
-        self.assertEqual(result.chunks, ["流", "式"])
+        self.assertEqual(chunks, ["流", "式"])
+        self.assertIsNotNone(result.observation)
         self.assertEqual(result.observation.provider, "deepseek")
         self.assertEqual(result.observation.model, "deepseek-stream-model")
         self.assertEqual(result.observation.latency_ms, 45)
@@ -468,7 +505,7 @@ class DeepSeekClientTest(unittest.TestCase):
             "DeepSeek API 网络请求失败：network unreachable",
         )
 
-    def test_stream_with_observation_raises_on_error_payload_immediately(self):
+    def test_stream_with_observation_raises_on_error_payload_during_iteration(self):
         config = AppConfig.from_env({"DEEPSEEK_API_KEY": "deepseek-key"})
 
         class StreamingResponse:
@@ -496,10 +533,12 @@ class DeepSeekClientTest(unittest.TestCase):
                 create=True,
             ) as fake_time:
                 fake_time.monotonic.side_effect = [100.0, 100.012]
+                result = DeepSeekChatCompletionsModelClient(
+                    config
+                ).stream_with_observation("流式")
+
                 with self.assertRaises(DeepSeekCallError) as ctx:
-                    DeepSeekChatCompletionsModelClient(
-                        config
-                    ).stream_with_observation("流式")
+                    list(result.chunks)
 
         self.assertEqual(
             str(ctx.exception),
