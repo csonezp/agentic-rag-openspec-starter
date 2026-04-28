@@ -111,7 +111,7 @@ MVP 形态：
 - [x] 生成 embeddings。
 - [x] 把向量存入本地向量库。
 - [x] 针对问题检索 top-k chunks。
-- [ ] 基于检索上下文生成回答。
+- [x] 基于检索上下文生成回答。
 - [ ] 在回答中包含来源引用。
 - [ ] 当检索证据较弱时拒答。
 
@@ -248,6 +248,8 @@ MVP 形态：
 - 本地向量库小节新增 `LocalQdrantVectorStore` 和 `scripts/index_knowledge_base.py`，把 chunk embedding、文本和 metadata 写入 Qdrant point，并用稳定 UUID point id 支持重复 upsert。
 - 启动并完成学习小节 `learn-phase-2-top-k-retrieval`，在独立分支 `codex/learn-phase-2-top-k-retrieval` 基于本地 Qdrant collection 实现 top-k chunks 检索。
 - top-k 检索小节新增 `SearchResult`、`LocalQdrantVectorStore.search()` 和 `scripts/retrieve_top_k.py`，输出 score、来源 metadata 和文本预览。
+- 启动并完成学习小节 `learn-phase-2-grounded-answer`，在独立分支 `codex/learn-phase-2-grounded-answer` 将 top-k 检索结果组装为 grounded prompt 并调用模型生成回答。
+- Grounded answer 小节新增 `GroundedAnswerer` 和 `scripts/answer_with_context.py`，支持 dry-run 验证上下文组装，也支持 FastEmbed + DeepSeek 真实回答生成。
 
 ### 2026-04-27
 
