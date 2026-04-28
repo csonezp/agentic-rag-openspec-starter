@@ -5,10 +5,20 @@ from agent_kb.vector_store import SearchResult
 
 
 @dataclass(frozen=True)
+class SourceCitation:
+    chunk_id: str
+    source_path: str
+    title: str
+    chunk_index: int
+    score: float
+
+
+@dataclass(frozen=True)
 class GroundedAnswerResult:
     question: str
     answer: str
     contexts: list[SearchResult]
+    citations: list[SourceCitation]
 
 
 class GroundedAnswerer:
@@ -25,7 +35,21 @@ class GroundedAnswerer:
             question=question,
             answer=self._model_client.complete(prompt),
             contexts=contexts,
+            citations=citations_from_contexts(contexts),
         )
+
+
+def citations_from_contexts(contexts: list[SearchResult]) -> list[SourceCitation]:
+    return [
+        SourceCitation(
+            chunk_id=context.chunk_id,
+            source_path=context.source_path,
+            title=context.title,
+            chunk_index=context.chunk_index,
+            score=context.score,
+        )
+        for context in contexts
+    ]
 
 
 def build_grounded_prompt(question: str, contexts: list[SearchResult]) -> str:
@@ -51,8 +75,8 @@ def build_grounded_prompt(question: str, contexts: list[SearchResult]) -> str:
         [
             "你是一个基于本地知识库回答问题的助手。",
             "只能基于给定上下文回答；不要编造上下文之外的事实。",
+            "回答中尽量使用 [chunk_id] 标记依据，例如 [observability.md#0]。",
             "如果上下文没有提供足够信息，请说明当前上下文没有提供足够信息。",
-            "本小节暂不要求输出正式来源引用，后续小节会单独处理引用格式。",
             "## 检索上下文",
             context_text,
             "## 用户问题",

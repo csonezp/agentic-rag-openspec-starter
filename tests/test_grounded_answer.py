@@ -7,7 +7,9 @@ from pathlib import Path
 from agent_kb.grounded_answer import (
     GroundedAnswerResult,
     GroundedAnswerer,
+    SourceCitation,
     build_grounded_prompt,
+    citations_from_contexts,
 )
 from agent_kb.vector_store import SearchResult
 from scripts.answer_with_context import main, parse_args
@@ -43,10 +45,27 @@ def _result(
 
 
 class GroundedAnswerTest(unittest.TestCase):
+    def test_citations_from_contexts_preserves_source_metadata(self):
+        citations = citations_from_contexts([_result()])
+
+        self.assertEqual(
+            citations,
+            [
+                SourceCitation(
+                    chunk_id="agent.md#0",
+                    source_path="agent.md",
+                    title="Agent 概念边界",
+                    chunk_index=0,
+                    score=0.88,
+                )
+            ],
+        )
+
     def test_build_grounded_prompt_includes_question_and_context(self):
         prompt = build_grounded_prompt("什么是 Agent？", [_result()])
 
         self.assertIn("只能基于给定上下文回答", prompt)
+        self.assertIn("回答中尽量使用 [chunk_id] 标记依据", prompt)
         self.assertIn("什么是 Agent？", prompt)
         self.assertIn("[agent.md#0]", prompt)
         self.assertIn("Agent 概念边界", prompt)
@@ -63,6 +82,7 @@ class GroundedAnswerTest(unittest.TestCase):
                 question="什么是 Agent？",
                 answer="基于上下文的回答",
                 contexts=[_result()],
+                citations=citations_from_contexts([_result()]),
             ),
         )
         self.assertIn("什么是 Agent？", client.prompt)
@@ -129,6 +149,8 @@ class GroundedAnswerTest(unittest.TestCase):
         self.assertIn("mode=dry-run", output)
         self.assertIn("contexts=1", output)
         self.assertIn("answer:", output)
+        self.assertIn("sources:", output)
+        self.assertIn("chunk_id=agent.md#0", output)
         self.assertIn("Agent 会在目标、上下文、工具和反馈之间做选择。", output)
 
     def test_answer_script_can_print_prompt_passed_to_model(self):

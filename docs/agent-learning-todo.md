@@ -112,7 +112,7 @@ MVP 形态：
 - [x] 把向量存入本地向量库。
 - [x] 针对问题检索 top-k chunks。
 - [x] 基于检索上下文生成回答。
-- [ ] 在回答中包含来源引用。
+- [x] 在回答中包含来源引用。
 - [ ] 当检索证据较弱时拒答。
 
 验收标准：
@@ -250,6 +250,8 @@ MVP 形态：
 - top-k 检索小节新增 `SearchResult`、`LocalQdrantVectorStore.search()` 和 `scripts/retrieve_top_k.py`，输出 score、来源 metadata 和文本预览。
 - 启动并完成学习小节 `learn-phase-2-grounded-answer`，在独立分支 `codex/learn-phase-2-grounded-answer` 将 top-k 检索结果组装为 grounded prompt 并调用模型生成回答。
 - Grounded answer 小节新增 `GroundedAnswerer` 和 `scripts/answer_with_context.py`，支持 dry-run 验证上下文组装，也支持 FastEmbed + DeepSeek 真实回答生成。
+- 启动并完成学习小节 `learn-phase-2-source-citations`，在独立分支 `codex/learn-phase-2-source-citations` 为 grounded answer 增加结构化来源引用。
+- 来源引用小节新增 `SourceCitation` 和 `citations_from_contexts()`，回答脚本会稳定输出 `sources:` 列表，并在 prompt 中要求模型尽量使用 `[chunk_id]` 标记依据。
 
 ### 2026-04-27
 

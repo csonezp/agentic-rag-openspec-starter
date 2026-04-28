@@ -15,7 +15,7 @@ from agent_kb.embeddings import (
     FastEmbedEmbeddingModel,
     HashingEmbeddingModel,
 )
-from agent_kb.grounded_answer import build_grounded_prompt
+from agent_kb.grounded_answer import GroundedAnswerer, build_grounded_prompt, citations_from_contexts
 from agent_kb.hello_agent import DryRunModelClient
 from agent_kb.vector_store import LocalQdrantVectorStore, VectorStoreConfig
 
@@ -87,8 +87,11 @@ def main(
             result = model_client.complete_with_observation(prompt)
             answer = result.text
             observation = result.observation
+            citations = citations_from_contexts(contexts)
         else:
-            answer = model_client.complete(prompt)
+            grounded_result = GroundedAnswerer(model_client).answer(args.question, contexts)
+            answer = grounded_result.answer
+            citations = grounded_result.citations
             observation = None
     except DeepSeekCallError as exc:
         _print_observation_summary(format_observation_lines(exc.observation))
@@ -97,6 +100,16 @@ def main(
 
     print("answer:")
     print(answer)
+    print("sources:")
+    for citation in citations:
+        print(
+            "- "
+            f"chunk_id={citation.chunk_id} "
+            f"source_path={citation.source_path} "
+            f"title={citation.title} "
+            f"chunk_index={citation.chunk_index} "
+            f"score={citation.score:.6f}"
+        )
     if observation is not None:
         _print_observation_summary(format_observation_lines(observation))
     return 0
