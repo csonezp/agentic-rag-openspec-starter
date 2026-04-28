@@ -97,7 +97,7 @@ MVP 形态：
 - [x] 接入 DeepSeek 官方 API 并完成真实模型调用。
 - [x] 为一个小 schema 添加结构化输出。
 - [x] 添加 function/tool calling，并接入一个本地函数。
-- [ ] 记录延迟、token 使用量、模型名和错误。
+- [x] 记录延迟、token 使用量、模型名和错误。
 
 验收标准：
 
@@ -261,3 +261,7 @@ MVP 形态：
 - 结构化输出小节实现 `LearningBrief` 小 schema、本地字段校验、dry-run 演示和真实 DeepSeek JSON Output 验证。
 - 启动并完成学习小节 `learn-phase-1-tool-calling-local-function`，在独立分支 `codex/learn-phase-1-tool-calling-local-function` 学习 DeepSeek Tool Calls。
 - Tool calling 小节实现 `get_phase1_progress` 本地只读函数、工具 allowlist、参数校验、模型 tool call 到本地执行再到最终回答的闭环。
+- 启动并完成学习小节 `learn-phase-1-call-observability`，在独立分支 `codex/learn-phase-1-call-observability` 为 DeepSeek 非流式、流式和 tool calling 链路补齐最小调用观测。
+- 调用观测小节统一输出 `observation:` 摘要块，覆盖 `model`、`latency_ms`、`input_tokens`、`output_tokens`、`total_tokens`、`error_type`、`error_message` 以及 tool calling 的 `tool_triggered`、`tool_names`、`success`。
+- 已通过 `PYTHONPATH=src python3 -m unittest discover -s tests` 和 `openspec validate --all --strict` 验证当前实现，并已完成真实 DeepSeek 非流式调用与真实 tool calling 复核。
+- 调用观测真实验证显示：CLI 能输出统一的 `observation:` 摘要，非流式链路可读到 `model / latency_ms / token`，tool calling 链路可读到 `tool_triggered / tool_names / success`。

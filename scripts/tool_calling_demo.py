@@ -3,6 +3,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from typing import Mapping, Optional, Sequence
 
+from agent_kb.call_observability import format_tool_call_observation_lines
 from agent_kb.config import AppConfig
 from agent_kb.deepseek_client import DeepSeekChatCompletionsModelClient
 from agent_kb.tool_calling import (
@@ -15,6 +16,12 @@ from agent_kb.tool_calling import (
 
 
 DEFAULT_PROMPT = "请调用工具查询当前 Phase 1 学习进度，并用一句话告诉我下一步。"
+
+
+def _print_observation_summary(lines: Sequence[str]) -> None:
+    print("observation:")
+    for line in lines:
+        print(line)
 
 
 def parse_args(argv: Sequence[str]) -> Namespace:
@@ -54,12 +61,30 @@ def main(
             )
         ],
     )
-    answer = runner.run(args.prompt)
-
     print(f"mode={mode}")
     print(f"provider={config.model_provider}")
     print(f"model={config.deepseek_model}")
+
+    if args.real:
+        result = runner.run_with_observation(args.prompt)
+        if not result.observation["success"]:
+            _print_observation_summary(
+                format_tool_call_observation_lines(result.observation)
+            )
+            print(
+                result.observation["error_message"] or "tool calling 运行失败",
+                file=sys.stderr,
+            )
+            return 1
+        answer = result.answer
+    else:
+        answer = runner.run(args.prompt)
+
     print(answer)
+    if args.real:
+        _print_observation_summary(
+            format_tool_call_observation_lines(result.observation)
+        )
     return 0
 
 
