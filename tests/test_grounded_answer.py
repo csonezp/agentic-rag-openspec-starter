@@ -73,6 +73,7 @@ class GroundedAnswerTest(unittest.TestCase):
 
         self.assertEqual(args.question, "什么是 Agent？")
         self.assertFalse(args.real)
+        self.assertFalse(args.show_prompt)
         self.assertEqual(args.provider, "fastembed")
         self.assertEqual(args.top_k, 3)
 
@@ -129,6 +130,61 @@ class GroundedAnswerTest(unittest.TestCase):
         self.assertIn("contexts=1", output)
         self.assertIn("answer:", output)
         self.assertIn("Agent 会在目标、上下文、工具和反馈之间做选择。", output)
+
+    def test_answer_script_can_print_prompt_passed_to_model(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source_dir = root / "knowledge"
+            vector_store_path = root / "qdrant"
+            source_dir.mkdir()
+            (source_dir / "agent.md").write_text(
+                "# Agent\n\nAgent 会在目标、上下文、工具和反馈之间做选择。",
+                encoding="utf-8",
+            )
+            with redirect_stdout(io.StringIO()):
+                index_main(
+                    [
+                        str(source_dir),
+                        "--vector-store-path",
+                        str(vector_store_path),
+                        "--collection-name",
+                        "test_chunks",
+                        "--provider",
+                        "hashing",
+                        "--dimensions",
+                        "8",
+                        "--chunk-size",
+                        "80",
+                        "--overlap",
+                        "0",
+                    ]
+                )
+
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "什么是 Agent？",
+                        "--vector-store-path",
+                        str(vector_store_path),
+                        "--collection-name",
+                        "test_chunks",
+                        "--provider",
+                        "hashing",
+                        "--dimensions",
+                        "8",
+                        "--top-k",
+                        "1",
+                        "--show-prompt",
+                    ]
+                )
+
+        output = stdout.getvalue()
+        self.assertEqual(exit_code, 0)
+        self.assertIn("prompt:", output)
+        self.assertIn("## 检索上下文", output)
+        self.assertIn("[agent.md#0]", output)
+        self.assertIn("## 用户问题", output)
 
 
 if __name__ == "__main__":

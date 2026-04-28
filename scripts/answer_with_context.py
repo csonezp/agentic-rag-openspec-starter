@@ -15,7 +15,7 @@ from agent_kb.embeddings import (
     FastEmbedEmbeddingModel,
     HashingEmbeddingModel,
 )
-from agent_kb.grounded_answer import GroundedAnswerer, build_grounded_prompt
+from agent_kb.grounded_answer import build_grounded_prompt
 from agent_kb.hello_agent import DryRunModelClient
 from agent_kb.vector_store import LocalQdrantVectorStore, VectorStoreConfig
 
@@ -30,6 +30,11 @@ def parse_args(argv: Sequence[str]) -> Namespace:
     parser.add_argument("--dimensions", type=int, default=DEFAULT_FASTEMBED_DIMENSIONS)
     parser.add_argument("--top-k", type=int, default=3)
     parser.add_argument("--real", action="store_true", help="调用真实 DeepSeek 模型生成回答。")
+    parser.add_argument(
+        "--show-prompt",
+        action="store_true",
+        help="打印真实传递给模型的 grounded prompt。",
+    )
     return parser.parse_args(argv)
 
 
@@ -72,15 +77,18 @@ def main(
         print(f"embedding_model={args.model_name}")
     print(f"top_k={args.top_k}")
     print(f"contexts={len(contexts)}")
+    prompt = build_grounded_prompt(args.question, contexts)
+    if args.show_prompt:
+        print("prompt:")
+        print(prompt)
 
     try:
         if args.real:
-            prompt = build_grounded_prompt(args.question, contexts)
             result = model_client.complete_with_observation(prompt)
             answer = result.text
             observation = result.observation
         else:
-            answer = GroundedAnswerer(model_client).answer(args.question, contexts).answer
+            answer = model_client.complete(prompt)
             observation = None
     except DeepSeekCallError as exc:
         _print_observation_summary(format_observation_lines(exc.observation))

@@ -15,6 +15,7 @@
 - 新增 `GroundedAnswerer`，把 grounded prompt 发送给模型 client。
 - 新增 `scripts/answer_with_context.py`，串联 query embedding、Qdrant top-k 检索和回答生成。
 - 脚本默认 dry-run，显式 `--real` 时调用 DeepSeek。
+- 脚本支持 `--show-prompt`，用于打印真实传递给模型的 grounded prompt，便于学习和调试。
 
 ## Prompt 结构
 
@@ -41,6 +42,7 @@
 - `PYTHONPATH=src:. python3 -m unittest tests.test_grounded_answer` 通过，合计 4 个测试。
 - `PYTHONPATH=src:. python3 scripts/answer_with_context.py "Agent RAG 是什么？" --vector-store-path data/qdrant-hashing-demo --collection-name knowledge_chunks_hashing --provider hashing --dimensions 64 --top-k 2` 使用 dry-run 完成验证，输出 2 条检索上下文，并把上下文完整放入回答 prompt。
 - `PYTHONPATH=src:. python3 scripts/answer_with_context.py "如何记录模型调用的延迟和 token？" --vector-store-path data/qdrant-fastembed-demo --collection-name knowledge_chunks_fastembed --provider fastembed --top-k 2 --real` 使用 FastEmbed + DeepSeek 完成真实验证，返回基于上下文的回答，并输出 `latency_ms` 与 token usage observation。
+- `PYTHONPATH=src:. python3 scripts/answer_with_context.py "如何记录模型调用的延迟和 token？" --vector-store-path data/qdrant-fastembed-demo --collection-name knowledge_chunks_fastembed --provider fastembed --top-k 2 --show-prompt --real` 打印了真实传递给 DeepSeek 的 grounded prompt，并成功返回回答。
 - `PYTHONPATH=src:. python3 -m unittest discover -s tests` 通过，合计 108 个测试。
 - `/opt/homebrew/bin/openspec validate --all --strict` 通过，合计 17 个 OpenSpec 校验项。
 
