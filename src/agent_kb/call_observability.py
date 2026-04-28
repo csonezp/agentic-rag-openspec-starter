@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, TypedDict
 
 
 @dataclass(frozen=True)
@@ -15,13 +15,26 @@ class CallObservation:
     model: str
     latency_ms: int
     usage: UsageMetrics
+    error_type: Optional[str] = None
     error_message: Optional[str] = None
+
+
+class ToolCallObservation(TypedDict):
+    tool_triggered: bool
+    tool_names: list[str]
+    success: bool
+    error_type: Optional[str]
+    error_message: Optional[str]
 
 
 def _render_metric(value: Optional[int]) -> str:
     if value is None:
         return "unknown"
     return str(value)
+
+
+def _render_bool(value: bool) -> str:
+    return "true" if value else "false"
 
 
 def format_observation_lines(observation: CallObservation) -> list[str]:
@@ -32,5 +45,35 @@ def format_observation_lines(observation: CallObservation) -> list[str]:
         f"input_tokens={_render_metric(observation.usage.input_tokens)}",
         f"output_tokens={_render_metric(observation.usage.output_tokens)}",
         f"total_tokens={_render_metric(observation.usage.total_tokens)}",
+        f"error_type={observation.error_type or ''}",
         f"error_message={observation.error_message or ''}",
     ]
+
+
+def format_tool_call_observation_lines(
+    observation: ToolCallObservation,
+) -> list[str]:
+    return [
+        f"tool_triggered={_render_bool(observation['tool_triggered'])}",
+        f"tool_names={','.join(observation['tool_names'])}",
+        f"success={_render_bool(observation['success'])}",
+        f"error_type={observation['error_type'] or ''}",
+        f"error_message={observation['error_message'] or ''}",
+    ]
+
+
+def build_tool_call_observation(
+    *,
+    tool_triggered: bool,
+    tool_names: list[str],
+    success: bool,
+    error_type: Optional[str] = None,
+    error_message: Optional[str] = None,
+) -> ToolCallObservation:
+    return {
+        "tool_triggered": tool_triggered,
+        "tool_names": tool_names,
+        "success": success,
+        "error_type": error_type,
+        "error_message": error_message,
+    }
