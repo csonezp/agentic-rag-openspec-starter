@@ -59,13 +59,16 @@
 
 ## 本地真实验证结果
 
-- 已尝试运行 `MODEL_PROVIDER=deepseek PYTHONPATH=src python3 scripts/hello_model.py --real "用一句话介绍这个项目"`。
-  - 结果：失败，退出码 `2`，stderr 为 `真实模式需要先配置 DEEPSEEK_API_KEY。`。
-- 已尝试运行 `MODEL_PROVIDER=deepseek PYTHONPATH=src python3 scripts/tool_calling_demo.py --real "请调用工具查询当前 Phase 1 进度，并告诉我下一步"`。
-  - 结果：失败，退出码 `2`，stderr 为 `真实模式需要先配置 DEEPSEEK_API_KEY。`。
+- 已运行 `MODEL_PROVIDER=deepseek PYTHONPATH=src python3 scripts/hello_model.py --real "用一句话介绍这个项目"`。
+  - 结果：成功，退出码 `0`。
+  - 观测摘要示例：`model=deepseek-v4-flash`、`latency_ms=2208`、`input_tokens=18`、`output_tokens=104`、`total_tokens=122`。
+- 已运行 `MODEL_PROVIDER=deepseek PYTHONPATH=src python3 scripts/tool_calling_demo.py --real "请调用工具查询当前 Phase 1 进度，并告诉我下一步"`。
+  - 结果：成功，退出码 `0`。
+  - 模型先触发 `get_phase1_progress` 本地函数，再基于工具结果生成最终回答。
+  - 观测摘要示例：`tool_triggered=true`、`tool_names=get_phase1_progress`、`success=true`。
 
 ## 结论
 
-- 代码、单测和 OpenSpec 校验已经证明最小观测链路可工作。
-- 当前 worktree 所在本地 shell 没有注入 `DEEPSEEK_API_KEY`，因此无法在这次执行中完成真实 DeepSeek 非流式调用和真实 tool calling 验证。
-- 后续只要在本地环境注入 `DEEPSEEK_API_KEY`，即可复用上述两条命令补齐真实验证。
+- 代码、单测、OpenSpec 校验和本地真实 DeepSeek 调用都已经证明最小观测链路可工作。
+- 当前项目已经能够在 CLI 中稳定输出非流式、流式和 tool calling 的统一观测摘要。
+- 下一步可以把这些最小观测结果继续接到更长期的 tracing、结构化日志或评测体系中。

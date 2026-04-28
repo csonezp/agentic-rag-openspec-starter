@@ -263,4 +263,5 @@ MVP 形态：
 - Tool calling 小节实现 `get_phase1_progress` 本地只读函数、工具 allowlist、参数校验、模型 tool call 到本地执行再到最终回答的闭环。
 - 启动并完成学习小节 `learn-phase-1-call-observability`，在独立分支 `codex/learn-phase-1-call-observability` 为 DeepSeek 非流式、流式和 tool calling 链路补齐最小调用观测。
 - 调用观测小节统一输出 `observation:` 摘要块，覆盖 `model`、`latency_ms`、`input_tokens`、`output_tokens`、`total_tokens`、`error_type`、`error_message` 以及 tool calling 的 `tool_triggered`、`tool_names`、`success`。
-- 已通过 `PYTHONPATH=src python3 -m unittest discover -s tests` 和 `openspec validate --all --strict` 验证当前实现；当前 worktree 的本地 shell 未注入 `DEEPSEEK_API_KEY`，因此本次未能完成真实 DeepSeek 非流式与 tool calling 复核，阻塞信息已记录到学习笔记。
+- 已通过 `PYTHONPATH=src python3 -m unittest discover -s tests` 和 `openspec validate --all --strict` 验证当前实现，并已完成真实 DeepSeek 非流式调用与真实 tool calling 复核。
+- 调用观测真实验证显示：CLI 能输出统一的 `observation:` 摘要，非流式链路可读到 `model / latency_ms / token`，tool calling 链路可读到 `tool_triggered / tool_names / success`。
