@@ -7,6 +7,7 @@ from pathlib import Path
 from agent_kb.chunker import DocumentChunk
 from agent_kb.embeddings import (
     EmbeddedChunk,
+    FastEmbedEmbeddingModel,
     HashingEmbeddingModel,
     embed_chunk,
     embed_chunks,
@@ -15,6 +16,39 @@ from scripts.generate_embeddings import main, parse_args
 
 
 class EmbeddingsTest(unittest.TestCase):
+    def test_fastembed_embedding_uses_client_and_converts_vector_to_list(self):
+        class FakeFastEmbedClient:
+            def embed(self, texts):
+                self.texts = texts
+                return [[0.1, 0.2, 0.3]]
+
+        client = FakeFastEmbedClient()
+        model = FastEmbedEmbeddingModel(
+            model_name="BAAI/bge-small-zh-v1.5",
+            dimensions=3,
+            embedding_client=client,
+        )
+
+        embedding = model.embed("中文知识库")
+
+        self.assertEqual(client.texts, ["中文知识库"])
+        self.assertEqual(embedding, [0.1, 0.2, 0.3])
+        self.assertEqual(model.dimensions, 3)
+
+    def test_fastembed_embedding_rejects_unexpected_dimensions(self):
+        class FakeFastEmbedClient:
+            def embed(self, texts):
+                return [[0.1, 0.2]]
+
+        model = FastEmbedEmbeddingModel(
+            model_name="BAAI/bge-small-zh-v1.5",
+            dimensions=3,
+            embedding_client=FakeFastEmbedClient(),
+        )
+
+        with self.assertRaisesRegex(ValueError, "embedding 维度不匹配"):
+            model.embed("Agent")
+
     def test_hashing_embedding_is_deterministic(self):
         model = HashingEmbeddingModel(dimensions=8)
 
@@ -68,7 +102,9 @@ class EmbeddingsTest(unittest.TestCase):
         args = parse_args([])
 
         self.assertEqual(args.source_dir, "knowledge")
-        self.assertEqual(args.dimensions, 64)
+        self.assertEqual(args.provider, "fastembed")
+        self.assertEqual(args.model_name, "BAAI/bge-small-zh-v1.5")
+        self.assertEqual(args.dimensions, 512)
 
     def test_demo_script_prints_embedding_summary(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -84,6 +120,8 @@ class EmbeddingsTest(unittest.TestCase):
                         "20",
                         "--overlap",
                         "0",
+                        "--provider",
+                        "hashing",
                         "--dimensions",
                         "8",
                     ]

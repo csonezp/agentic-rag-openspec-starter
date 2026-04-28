@@ -34,6 +34,22 @@
 - **WHEN** 用户运行 embeddings 演示脚本
 - **THEN** 脚本 MUST 输出 chunk 数量、embedding 数量和向量维度
 
+### Requirement: Local real embedding provider
+
+项目 MUST 支持一个真实本地 embedding provider，用于在不调用云端 API 的情况下生成语义向量。
+
+#### Scenario: 使用 FastEmbed 生成 embedding
+
+- **WHEN** 用户选择 `fastembed` provider
+- **THEN** 系统 MUST 使用 FastEmbed 客户端生成 embedding
+- **AND** 向量维度 MUST 与 provider 配置一致
+
+#### Scenario: 使用 hashing provider 作为测试兜底
+
+- **WHEN** 用户选择 `hashing` provider
+- **THEN** 系统 MUST 使用 deterministic hashing embedding
+- **AND** 单元测试 MUST 不依赖模型下载或网络访问
+
 ### Requirement: Embedding learning record
 
 本小节完成时 MUST 记录 embedding 生成的实现方式、验证结果和 provider 取舍。

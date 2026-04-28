@@ -3,4 +3,6 @@ name = "internal-knowledge-agent"
 version = "0.1.0"
 description = "用于学习构建生产级知识库 Agent 的项目。"
 requires-python = ">=3.9"
-dependencies = []
+dependencies = [
+  "fastembed>=0.7.0,<1.0",
+]

@@ -16,3 +16,11 @@
 - [x] 3.2 运行单元测试和 OpenSpec 严格校验。
 - [x] 3.3 使用 `knowledge/` 完成本地 embeddings 演示验证。
 - [x] 3.4 完成后更新 `tasks.md` 和 `docs/agent-learning-todo.md` 勾选状态。
+
+## 4. 真实本地 provider 补充
+
+- [x] 4.1 增加 FastEmbed provider 的测试，并先确认测试失败。
+- [x] 4.2 新增 `FastEmbedEmbeddingModel`，默认使用 `BAAI/bge-small-zh-v1.5`。
+- [x] 4.3 为演示脚本增加 `--provider`、`--model-name` 和真实 provider 默认值。
+- [x] 4.4 安装依赖后使用 `knowledge/` 完成 FastEmbed 真实模型演示。
+- [x] 4.5 更新学习笔记并重新运行单元测试和 OpenSpec 严格校验。
