@@ -1,7 +1,16 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from agent_kb.hello_agent import ModelClient
 from agent_kb.vector_store import SearchResult
+
+
+@dataclass(frozen=True)
+class EvidenceCheckResult:
+    is_sufficient: bool
+    reason: str
+    best_score: Optional[float]
+    contexts_count: int
 
 
 @dataclass(frozen=True)
@@ -19,6 +28,8 @@ class GroundedAnswerResult:
     answer: str
     contexts: list[SearchResult]
     citations: list[SourceCitation]
+    refused: bool = False
+    refusal_reason: Optional[str] = None
 
 
 class GroundedAnswerer:
@@ -50,6 +61,35 @@ def citations_from_contexts(contexts: list[SearchResult]) -> list[SourceCitation
         )
         for context in contexts
     ]
+
+
+def evaluate_evidence(
+    contexts: list[SearchResult],
+    min_score: float = 0.45,
+) -> EvidenceCheckResult:
+    if not contexts:
+        return EvidenceCheckResult(
+            is_sufficient=False,
+            reason="no_contexts",
+            best_score=None,
+            contexts_count=0,
+        )
+
+    best_score = max(context.score for context in contexts)
+    if best_score < min_score:
+        return EvidenceCheckResult(
+            is_sufficient=False,
+            reason="best_score_below_threshold",
+            best_score=best_score,
+            contexts_count=len(contexts),
+        )
+
+    return EvidenceCheckResult(
+        is_sufficient=True,
+        reason="sufficient",
+        best_score=best_score,
+        contexts_count=len(contexts),
+    )
 
 
 def build_grounded_prompt(question: str, contexts: list[SearchResult]) -> str:

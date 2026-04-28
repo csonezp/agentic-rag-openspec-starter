@@ -113,7 +113,7 @@ MVP 形态：
 - [x] 针对问题检索 top-k chunks。
 - [x] 基于检索上下文生成回答。
 - [x] 在回答中包含来源引用。
-- [ ] 当检索证据较弱时拒答。
+- [x] 当检索证据较弱时拒答。
 
 验收标准：
 
@@ -252,6 +252,8 @@ MVP 形态：
 - Grounded answer 小节新增 `GroundedAnswerer` 和 `scripts/answer_with_context.py`，支持 dry-run 验证上下文组装，也支持 FastEmbed + DeepSeek 真实回答生成。
 - 启动并完成学习小节 `learn-phase-2-source-citations`，在独立分支 `codex/learn-phase-2-source-citations` 为 grounded answer 增加结构化来源引用。
 - 来源引用小节新增 `SourceCitation` 和 `citations_from_contexts()`，回答脚本会稳定输出 `sources:` 列表，并在 prompt 中要求模型尽量使用 `[chunk_id]` 标记依据。
+- 启动并完成学习小节 `learn-phase-2-weak-evidence-refusal`，在独立分支 `codex/learn-phase-2-weak-evidence-refusal` 为 grounded answer 增加弱证据拒答。
+- 弱证据拒答小节新增 `EvidenceCheckResult` 和 `evaluate_evidence()`，回答脚本支持 `--min-score`；证据不足时本地拒答并避免调用真实模型。
 
 ### 2026-04-27
 

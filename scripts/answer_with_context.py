@@ -15,7 +15,12 @@ from agent_kb.embeddings import (
     FastEmbedEmbeddingModel,
     HashingEmbeddingModel,
 )
-from agent_kb.grounded_answer import GroundedAnswerer, build_grounded_prompt, citations_from_contexts
+from agent_kb.grounded_answer import (
+    GroundedAnswerer,
+    build_grounded_prompt,
+    citations_from_contexts,
+    evaluate_evidence,
+)
 from agent_kb.hello_agent import DryRunModelClient
 from agent_kb.vector_store import LocalQdrantVectorStore, VectorStoreConfig
 
@@ -29,6 +34,7 @@ def parse_args(argv: Sequence[str]) -> Namespace:
     parser.add_argument("--model-name", default=DEFAULT_FASTEMBED_MODEL_NAME)
     parser.add_argument("--dimensions", type=int, default=DEFAULT_FASTEMBED_DIMENSIONS)
     parser.add_argument("--top-k", type=int, default=3)
+    parser.add_argument("--min-score", type=float, default=0.45)
     parser.add_argument("--real", action="store_true", help="调用真实 DeepSeek 模型生成回答。")
     parser.add_argument(
         "--show-prompt",
@@ -54,6 +60,29 @@ def main(
         )
     )
     contexts = store.search(query_embedding=query_embedding, top_k=args.top_k)
+    citations = citations_from_contexts(contexts)
+    evidence = evaluate_evidence(contexts, min_score=args.min_score)
+
+    print(f"question={args.question}")
+    print(f"vector_store_path={args.vector_store_path}")
+    print(f"collection_name={args.collection_name}")
+    print(f"provider={args.provider}")
+    if args.provider == "fastembed":
+        print(f"embedding_model={args.model_name}")
+    print(f"top_k={args.top_k}")
+    print(f"min_score={args.min_score}")
+    print(f"contexts={len(contexts)}")
+    best_score = "unknown" if evidence.best_score is None else f"{evidence.best_score:.6f}"
+    print(f"best_score={best_score}")
+
+    if not evidence.is_sufficient:
+        print("mode=refusal")
+        print("answer:")
+        print("当前知识库没有提供足够证据回答这个问题。")
+        print("refused=true")
+        print(f"refusal_reason={evidence.reason}")
+        _print_sources(citations)
+        return 0
 
     if args.real:
         if config.model_provider != "deepseek":
@@ -69,14 +98,6 @@ def main(
         mode = "dry-run"
 
     print(f"mode={mode}")
-    print(f"question={args.question}")
-    print(f"vector_store_path={args.vector_store_path}")
-    print(f"collection_name={args.collection_name}")
-    print(f"provider={args.provider}")
-    if args.provider == "fastembed":
-        print(f"embedding_model={args.model_name}")
-    print(f"top_k={args.top_k}")
-    print(f"contexts={len(contexts)}")
     prompt = build_grounded_prompt(args.question, contexts)
     if args.show_prompt:
         print("prompt:")
@@ -87,7 +108,6 @@ def main(
             result = model_client.complete_with_observation(prompt)
             answer = result.text
             observation = result.observation
-            citations = citations_from_contexts(contexts)
         else:
             grounded_result = GroundedAnswerer(model_client).answer(args.question, contexts)
             answer = grounded_result.answer
@@ -100,16 +120,8 @@ def main(
 
     print("answer:")
     print(answer)
-    print("sources:")
-    for citation in citations:
-        print(
-            "- "
-            f"chunk_id={citation.chunk_id} "
-            f"source_path={citation.source_path} "
-            f"title={citation.title} "
-            f"chunk_index={citation.chunk_index} "
-            f"score={citation.score:.6f}"
-        )
+    print("refused=false")
+    _print_sources(citations)
     if observation is not None:
         _print_observation_summary(format_observation_lines(observation))
     return 0
@@ -128,6 +140,19 @@ def _print_observation_summary(lines: Sequence[str]) -> None:
     print("observation:")
     for line in lines:
         print(line)
+
+
+def _print_sources(citations) -> None:
+    print("sources:")
+    for citation in citations:
+        print(
+            "- "
+            f"chunk_id={citation.chunk_id} "
+            f"source_path={citation.source_path} "
+            f"title={citation.title} "
+            f"chunk_index={citation.chunk_index} "
+            f"score={citation.score:.6f}"
+        )
 
 
 if __name__ == "__main__":
