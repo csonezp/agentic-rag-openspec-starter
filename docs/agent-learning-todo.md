@@ -105,7 +105,7 @@ MVP 形态：
 
 ## Phase 2：基础 RAG
 
-- [ ] 为第一个来源类型实现文档加载。
+- [x] 为第一个来源类型实现文档加载。
 - [ ] 实现文本抽取和标准化。
 - [ ] 实现带元数据的文档切片。
 - [ ] 生成 embeddings。
@@ -231,6 +231,12 @@ MVP 形态：
 ## 学习记录
 
 每次学习结束后，在这里留下简短记录。
+
+### 2026-04-28 Phase 2 学习记录
+
+- 启动并完成学习小节 `learn-phase-2-document-loading`，在独立分支 `codex/learn-phase-2-document-loading` 实现本地 Markdown 文档加载。
+- 文档加载支持递归读取 `knowledge/**/*.md`，生成包含 `source_path`、`title`、`content` 的 `KnowledgeDocument`。
+- 本小节只负责文件发现、读取和最小元数据保留，不做标准化、切片、embedding 或检索。
 
 ### 2026-04-27
 
