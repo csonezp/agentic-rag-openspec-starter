@@ -110,7 +110,7 @@ MVP 形态：
 - [x] 实现带元数据的文档切片。
 - [x] 生成 embeddings。
 - [x] 把向量存入本地向量库。
-- [ ] 针对问题检索 top-k chunks。
+- [x] 针对问题检索 top-k chunks。
 - [ ] 基于检索上下文生成回答。
 - [ ] 在回答中包含来源引用。
 - [ ] 当检索证据较弱时拒答。
@@ -246,6 +246,8 @@ MVP 形态：
 - 后续在 embeddings 小节补充 FastEmbed provider，默认使用 `BAAI/bge-small-zh-v1.5` 生成 512 维中文语义向量，同时保留 hashing provider 作为测试兜底。
 - 启动并完成学习小节 `learn-phase-2-local-vector-store`，在独立分支 `codex/learn-phase-2-local-vector-store` 使用 Qdrant 本地模式写入向量。
 - 本地向量库小节新增 `LocalQdrantVectorStore` 和 `scripts/index_knowledge_base.py`，把 chunk embedding、文本和 metadata 写入 Qdrant point，并用稳定 UUID point id 支持重复 upsert。
+- 启动并完成学习小节 `learn-phase-2-top-k-retrieval`，在独立分支 `codex/learn-phase-2-top-k-retrieval` 基于本地 Qdrant collection 实现 top-k chunks 检索。
+- top-k 检索小节新增 `SearchResult`、`LocalQdrantVectorStore.search()` 和 `scripts/retrieve_top_k.py`，输出 score、来源 metadata 和文本预览。
 
 ### 2026-04-27
 

@@ -8,11 +8,14 @@ from agent_kb.chunker import DocumentChunk
 from agent_kb.embeddings import EmbeddedChunk
 from agent_kb.vector_store import (
     LocalQdrantVectorStore,
+    SearchResult,
     VectorStoreConfig,
     chunk_payload,
     stable_point_id,
 )
 from scripts.index_knowledge_base import main, parse_args
+from scripts.retrieve_top_k import main as retrieve_main
+from scripts.retrieve_top_k import parse_args as parse_retrieve_args
 
 
 class VectorStoreTest(unittest.TestCase):
@@ -90,6 +93,58 @@ class VectorStoreTest(unittest.TestCase):
 
         self.assertEqual(count, 1)
 
+    def test_search_returns_top_k_results_with_payload(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            store = LocalQdrantVectorStore(
+                VectorStoreConfig(
+                    path=tmpdir,
+                    collection_name="test_chunks",
+                    dimensions=2,
+                )
+            )
+            chunks = [
+                EmbeddedChunk(
+                    chunk=DocumentChunk("agent.md#0", "agent.md", "Agent", 0, 0, 5, "Agent RAG"),
+                    embedding=[1.0, 0.0],
+                ),
+                EmbeddedChunk(
+                    chunk=DocumentChunk("ops.md#0", "ops.md", "Ops", 0, 0, 5, "Deploy"),
+                    embedding=[0.0, 1.0],
+                ),
+            ]
+            store.upsert_chunks(chunks)
+
+            results = store.search(query_embedding=[1.0, 0.0], top_k=1)
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(
+            results[0],
+            SearchResult(
+                score=results[0].score,
+                chunk_id="agent.md#0",
+                source_path="agent.md",
+                title="Agent",
+                chunk_index=0,
+                start_char=0,
+                end_char=5,
+                text="Agent RAG",
+            ),
+        )
+        self.assertGreater(results[0].score, 0.99)
+
+    def test_search_rejects_wrong_query_dimensions(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            store = LocalQdrantVectorStore(
+                VectorStoreConfig(
+                    path=tmpdir,
+                    collection_name="test_chunks",
+                    dimensions=2,
+                )
+            )
+
+            with self.assertRaisesRegex(ValueError, "query embedding 维度不匹配"):
+                store.search(query_embedding=[1.0, 0.0, 0.0], top_k=1)
+
     def test_parse_args_uses_local_qdrant_defaults(self):
         args = parse_args([])
 
@@ -132,6 +187,66 @@ class VectorStoreTest(unittest.TestCase):
         self.assertIn("provider=hashing", output)
         self.assertIn("chunks=1", output)
         self.assertIn("points_written=1", output)
+
+    def test_retrieve_parse_args_uses_defaults(self):
+        args = parse_retrieve_args(["什么是 Agent？"])
+
+        self.assertEqual(args.question, "什么是 Agent？")
+        self.assertEqual(args.vector_store_path, "data/qdrant")
+        self.assertEqual(args.collection_name, "knowledge_chunks")
+        self.assertEqual(args.provider, "fastembed")
+        self.assertEqual(args.top_k, 3)
+
+    def test_retrieve_script_prints_top_k_results_with_hashing_provider(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source_dir = root / "knowledge"
+            vector_store_path = root / "qdrant"
+            source_dir.mkdir()
+            (source_dir / "agent.md").write_text("# Agent\n\nAgent RAG", encoding="utf-8")
+            with redirect_stdout(io.StringIO()):
+                main(
+                    [
+                        str(source_dir),
+                        "--vector-store-path",
+                        str(vector_store_path),
+                        "--collection-name",
+                        "test_chunks",
+                        "--provider",
+                        "hashing",
+                        "--dimensions",
+                        "8",
+                        "--chunk-size",
+                        "20",
+                        "--overlap",
+                        "0",
+                    ]
+                )
+            stdout = io.StringIO()
+
+            with redirect_stdout(stdout):
+                exit_code = retrieve_main(
+                    [
+                        "Agent RAG 是什么？",
+                        "--vector-store-path",
+                        str(vector_store_path),
+                        "--collection-name",
+                        "test_chunks",
+                        "--provider",
+                        "hashing",
+                        "--dimensions",
+                        "8",
+                        "--top-k",
+                        "1",
+                    ]
+                )
+
+        output = stdout.getvalue()
+        self.assertEqual(exit_code, 0)
+        self.assertIn("question=Agent RAG 是什么？", output)
+        self.assertIn("provider=hashing", output)
+        self.assertIn("top_k=1", output)
+        self.assertIn("chunk_id=agent.md#0", output)
 
 
 if __name__ == "__main__":
