@@ -107,7 +107,7 @@ MVP 形态：
 
 - [x] 为第一个来源类型实现文档加载。
 - [x] 实现文本抽取和标准化。
-- [ ] 实现带元数据的文档切片。
+- [x] 实现带元数据的文档切片。
 - [ ] 生成 embeddings。
 - [ ] 把向量存入本地向量库。
 - [ ] 针对问题检索 top-k chunks。
@@ -239,6 +239,8 @@ MVP 形态：
 - 本小节只负责文件发现、读取和最小元数据保留，不做标准化、切片、embedding 或检索。
 - 启动并完成学习小节 `learn-phase-2-text-extraction-normalization`，在独立分支 `codex/learn-phase-2-text-extraction-normalization` 实现 Markdown 文本抽取和标准化。
 - 文本标准化支持标题、列表、链接、代码围栏和空白归一化，输出包含 `source_path`、`title`、`text` 的 `NormalizedDocument`。
+- 启动并完成学习小节 `learn-phase-2-metadata-aware-chunking`，在独立分支 `codex/learn-phase-2-metadata-aware-chunking` 实现带元数据的固定窗口切片。
+- 切片小节新增 `DocumentChunk`，保留 `chunk_id`、`source_path`、`title`、`chunk_index`、`start_char`、`end_char` 和 `text`，并支持 `chunk_size` 与 `overlap`。
 
 ### 2026-04-27
 
