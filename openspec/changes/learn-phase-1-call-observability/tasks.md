@@ -24,9 +24,13 @@
 
 ## 4. 文档与验证
 
-- [ ] 4.1 新增学习笔记，记录字段来源、统计口径和限制。
-- [ ] 4.2 运行单元测试和 OpenSpec 严格校验。
+- [x] 4.1 新增学习笔记，记录字段来源、统计口径和限制。
+  - 2026-04-27(task5): 新增 `docs/learning-notes/phase-1-call-observability.md`，集中记录非流式、流式和 tool calling 三条链路的字段来源、延迟与 token 统计口径、已知限制，以及自动化/手动验证结果。
+- [x] 4.2 运行单元测试和 OpenSpec 严格校验。
   - 2026-04-27(task1): 已运行 `PYTHONPATH=src:. python3 -m unittest tests.test_deepseek_client tests.test_call_observability -v`，通过；尚未执行 OpenSpec 严格校验，因此该项保持未完成。
   - 2026-04-27(task4-review): 已运行 `PYTHONPATH=src:. python3 -m unittest tests.test_hello_model_script tests.test_tool_calling tests.test_call_observability -v`，通过；尚未执行 OpenSpec 严格校验，因此该项保持未完成。
+  - 2026-04-27(task5): 已运行 `PYTHONPATH=src python3 -m unittest discover -s tests`，结果为 `Ran 69 tests in 0.009s`、`OK`；已运行 `openspec validate --all --strict`，结果为 `10 passed, 0 failed (10 items)`。
 - [ ] 4.3 使用真实 DeepSeek 调用验证至少一条非流式链路和一条 tool calling 链路。
-- [ ] 4.4 完成后更新 `tasks.md` 和 `docs/agent-learning-todo.md` 勾选状态。
+  - 2026-04-27(task5): 已在当前 worktree 尝试运行 `MODEL_PROVIDER=deepseek PYTHONPATH=src python3 scripts/hello_model.py --real "用一句话介绍这个项目"` 和 `MODEL_PROVIDER=deepseek PYTHONPATH=src python3 scripts/tool_calling_demo.py --real "请调用工具查询当前 Phase 1 进度，并告诉我下一步"`；两条命令均因当前本地 shell 未配置 `DEEPSEEK_API_KEY` 失败，退出码均为 `2`，错误信息均为 `真实模式需要先配置 DEEPSEEK_API_KEY。`，因此该项保持未完成。
+- [x] 4.4 完成后更新 `tasks.md` 和 `docs/agent-learning-todo.md` 勾选状态。
+  - 2026-04-27(task5): 已同步更新本文件、`docs/agent-learning-todo.md` 和学习笔记，记录当前完成项、自动化验证结果以及真实调用受本地环境阻塞的原因。
