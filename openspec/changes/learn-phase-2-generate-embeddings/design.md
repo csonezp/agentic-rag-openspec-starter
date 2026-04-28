@@ -1,0 +1,48 @@
+## Context
+
+RAG 的检索阶段通常需要把文本 chunk 转成向量。向量不是最终答案，而是用于相似度检索的中间表示。当前项目已经有 `DocumentChunk`，它包含 `chunk_id`、`source_path`、`title`、字符范围和文本。
+
+本小节的重点是建立 embedding 生成的代码边界，而不是追求 embedding 语义质量。
+
+## Goals / Non-Goals
+
+**Goals:**
+
+- 定义 embedding 模型协议。
+- 为每个 `DocumentChunk` 生成固定维度向量。
+- 保留 chunk metadata，形成 `EmbeddedChunk`。
+- 使用 deterministic 本地实现保证测试稳定。
+- 提供演示脚本串联加载、标准化、切片和 embedding。
+
+**Non-Goals:**
+
+- 不接入云端 embedding API。
+- 不存储向量。
+- 不实现检索。
+- 不评估语义相似度质量。
+
+## Decisions
+
+### Decision: 使用本地 deterministic embedding
+
+本小节实现 `HashingEmbeddingModel`。它把文本按 token 简单拆分，用 hash 将 token 映射到固定维度，并做 L2 normalization。优点是：
+
+- 不依赖网络和 API Key。
+- 单元测试完全可重复。
+- 足够支持后续向量存储和检索流程学习。
+
+缺点是语义质量不如真实 embedding 模型。这个缺点会在学习笔记中明确记录，后续可以替换为 OpenAI、Qwen、BGE、bge-m3 或其他真实 embedding provider。
+
+### Decision: embedding 与 chunk metadata 绑定
+
+`EmbeddedChunk` 保留原始 `DocumentChunk` 和 `embedding`。后续写入向量库时，可以直接取 chunk metadata 作为 payload。
+
+### Decision: 向量维度可配置
+
+默认维度使用 64，便于本地演示和测试。后续真实 provider 的维度可能是 768、1024、1536 或其他值，因此代码不假设固定维度。
+
+## Risks / Trade-offs
+
+- [Risk] 本地 hash embedding 不能代表真实语义质量。→ 明确作为学习和流程验证用，后续 provider 可替换。
+- [Risk] tokenization 简单。→ 当前只做轻量拆分，后续检索质量提升阶段再优化。
+- [Risk] 用户误以为 DeepSeek 已提供 embeddings。→ 文档明确记录本小节未使用 DeepSeek embedding provider。

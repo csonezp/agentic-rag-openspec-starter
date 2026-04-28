@@ -108,7 +108,7 @@ MVP 形态：
 - [x] 为第一个来源类型实现文档加载。
 - [x] 实现文本抽取和标准化。
 - [x] 实现带元数据的文档切片。
-- [ ] 生成 embeddings。
+- [x] 生成 embeddings。
 - [ ] 把向量存入本地向量库。
 - [ ] 针对问题检索 top-k chunks。
 - [ ] 基于检索上下文生成回答。
@@ -241,6 +241,8 @@ MVP 形态：
 - 文本标准化支持标题、列表、链接、代码围栏和空白归一化，输出包含 `source_path`、`title`、`text` 的 `NormalizedDocument`。
 - 启动并完成学习小节 `learn-phase-2-metadata-aware-chunking`，在独立分支 `codex/learn-phase-2-metadata-aware-chunking` 实现带元数据的固定窗口切片。
 - 切片小节新增 `DocumentChunk`，保留 `chunk_id`、`source_path`、`title`、`chunk_index`、`start_char`、`end_char` 和 `text`，并支持 `chunk_size` 与 `overlap`。
+- 启动并完成学习小节 `learn-phase-2-generate-embeddings`，在独立分支 `codex/learn-phase-2-generate-embeddings` 实现本地 deterministic embeddings。
+- Embeddings 小节将 `DocumentChunk` 转换为 `EmbeddedChunk`，保留 chunk metadata，并使用可配置维度的 `HashingEmbeddingModel` 支撑后续向量库学习。
 
 ### 2026-04-27
 
