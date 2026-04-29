@@ -8,7 +8,7 @@
 
 本小节采用最小可解释策略：根据检索结果数量和最高 score 判断是否拒答。
 
-## 本小节实现
+## 本次做了什么
 
 - 新增 `EvidenceCheckResult`，记录证据是否足够、原因、最高 score 和上下文数量。
 - 新增 `evaluate_evidence()`：
@@ -18,6 +18,32 @@
 - `GroundedAnswerResult` 新增 `refused` 和 `refusal_reason` 字段。
 - `scripts/answer_with_context.py` 新增 `--min-score` 参数，默认 `0.45`。
 - 回答脚本会先做 evidence check；证据弱时输出拒答和 sources，不调用真实模型。
+- 补充测试覆盖证据足够、无上下文、低分上下文、本地拒答和正常模型调用分支。
+- 把“学习交互内容也要沉淀到学习文档”的规则写入 `AGENTS.md`，并从本小节开始执行。
+
+## 原理/流程
+
+本小节解决的是“检索到了来源，但来源是否足够支撑回答”的问题。来源引用负责可追溯，弱证据拒答负责判断是否应该回答。
+
+整体流程如下：
+
+```text
+用户问题
+-> 生成 query embedding
+-> Qdrant top-k 检索候选 chunk
+-> evaluate_evidence() 检查上下文数量和最高 score
+-> 证据不足：本地输出拒答，不调用 DeepSeek
+-> 证据足够：构造 grounded prompt，调用 DeepSeek 或 dry-run
+-> 输出回答、refused 状态、拒答原因和 sources
+```
+
+当前判断逻辑是最小版本：
+
+- 没有检索结果，说明知识库没有可用上下文，直接拒答。
+- 有检索结果但最高 score 低于 `min_score`，说明最相关内容仍然不够相似，拒答。
+- 最高 score 达到阈值时，才把检索上下文放进 prompt，并允许模型生成回答。
+
+这个判断发生在模型调用之前，因此证据不足时不会消耗真实模型调用，也不会把弱相关上下文交给模型“硬答”。
 
 ## 拒答输出
 
